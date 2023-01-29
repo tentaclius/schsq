@@ -3,14 +3,6 @@
 
 #include <pthread.h>
 
-// TODO
-// - for internal timing use timer_create(CLOCK_REALTIME...)
-// - once per beat/timer-event read the data and schedule events into a GAsyncQueue;
-//   notify the sending thread via pthread_kill;
-// - the sending thread reads the heap, sends the notes
-//   and then calculates the delay till the next event with clock_gettime()
-//   and sleeps with nanosleep()
-
 typedef void (*event_fn_t) (void*);
 struct scheduler_struct;
 typedef struct scheduler_struct scheduler_t;
