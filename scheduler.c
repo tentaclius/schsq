@@ -55,10 +55,18 @@ thread_func(void *arg)
 
       if (time_compare(current_evt->tm, current_time) <= 0) {
          current_evt->fn(current_evt->param);
+         free(g_steal_pointer(&current_evt));
       } else {
-         g_async_queue_push_sorted(sch->queue, current_evt, event_compare_time, NULL);
          struct timespec req = time_sub(current_evt->tm, current_time);
-         assert(nanosleep(&req, NULL) == 0 || errno == EINTR);
+         if (nanosleep(&req, NULL) == 0) {
+            current_evt->fn(current_evt->param);
+            free(g_steal_pointer(&current_evt));
+         } else if (errno == EINTR) {
+            g_async_queue_push_sorted(sch->queue, current_evt, event_compare_time, NULL);
+         } else {
+            perror("nanoseleep in thread_func");
+            exit(-1);
+         }
       }
    }
    return NULL;
