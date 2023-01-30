@@ -89,7 +89,7 @@ time_add(struct timespec a, struct timespec b)
 }
 
 struct timespec
-time_add_nsec(struct timespec a, unsigned long long nsec)
+time_add_nsec(struct timespec a, uint64_t nsec)
 {
    struct timespec b = { .tv_sec = nsec / 1000000000, .tv_nsec = nsec % 1000000000 };
    return time_add(a, b);
@@ -128,6 +128,14 @@ sch_init(scheduler_t *sch)
    pthread_attr_t attr;
    assert(pthread_attr_init(&attr) == 0);
    assert(pthread_create(&sch->thread_id, &attr, thread_func, sch) == 0);
+}
+
+scheduler_t*
+sch_run()
+{
+   scheduler_t *sch = (scheduler_t*) malloc(sizeof(scheduler_t));
+   sch_init(sch);
+   return sch;
 }
 
 void

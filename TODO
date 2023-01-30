@@ -1,8 +1,8 @@
 [v] Scheduler
-[ ] Guile
+[v] Guile
 [ ] MIDI IO functions with alsaseq
-    - midi-init
-    - midi-send-note-on, midi-send-note-off
+    v midi-init
+    v midi-send-note-on, midi-send-note-off
     - midi-send-ctrl
     - midi-send-sysex
     - midi-recv
