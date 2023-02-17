@@ -55,7 +55,7 @@ midi_send_event(midi_handler_t *h, void *ptr)
 
 typedef struct {
    midi_handler_t *midi;
-   void *event;
+   snd_seq_event_t *event;
    uint8_t bFreeEvent;
 } midi_event_param_t;
 
@@ -78,6 +78,12 @@ midi_schedule_event(midi_handler_t *midi, scheduler_t *sch, struct timespec tm, 
    param->midi = midi;
    param->event = ptr;
    param->bFreeEvent = 0;
+
+   param->event->queue = SND_SEQ_QUEUE_DIRECT;
+   param->event->source.port = midi->port;
+   param->event->dest.client = SND_SEQ_ADDRESS_SUBSCRIBERS;
+   param->event->dest.port = SND_SEQ_ADDRESS_UNKNOWN;
+
    schedule_event(sch, tm, execute_midi_event, param);
 }
 
@@ -104,22 +110,25 @@ midi_schedule_note(midi_handler_t *h, scheduler_t *sch, struct timespec tm, unsi
    schedule_event(sch, tm, execute_midi_event, arg);
 }
 
-/* Send a note directly without the scheduler */
 void
-midi_send_note(midi_handler_t *h, unsigned type, unsigned note, unsigned velo, unsigned chan)
+midi_schedule_ctrl(midi_handler_t *midi, scheduler_t *sch, struct timespec tm, unsigned ctrl, unsigned value, unsigned chan)
 {
    snd_seq_event_t *event = (snd_seq_event_t*) malloc(sizeof(snd_seq_event_t));
    snd_seq_ev_clear(event);
    event->queue = SND_SEQ_QUEUE_DIRECT;
-   event->type = type;
+   event->type = SND_SEQ_EVENT_CONTROLLER;
    event->flags = SND_SEQ_EVENT_LENGTH_FIXED;
-   event->source.port = h->port;
+   event->source.port = midi->port;
    event->dest.client = SND_SEQ_ADDRESS_SUBSCRIBERS;
    event->dest.port = SND_SEQ_ADDRESS_UNKNOWN;
-   event->data.note.channel = chan;
-   event->data.note.note = note;
-   event->data.note.velocity = velo;
+   event->data.control.channel = chan;
+   event->data.control.param = ctrl;
+   event->data.control.value = value;
 
-   snd_seq_event_output(h->seq, event);
-   snd_seq_drain_output(h->seq);
+   midi_event_param_t *arg = (midi_event_param_t*) malloc(sizeof(midi_event_param_t));
+   arg->midi = midi;
+   arg->event = event;
+   arg->bFreeEvent = 1;
+
+   schedule_event(sch, tm, execute_midi_event, arg);
 }

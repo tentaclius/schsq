@@ -32,13 +32,15 @@
                 (reverse defs)
                 (loop (cddr p) (cons `(define ,(car p) ,(cadr p)) defs))))))
 
-(define (to-int n)
-  (inexact->exact (round n)))
-
 (define (now+sec . n)
   (+ (now) (* (apply + n) SEC)))
 (define (nsec+sec ns . s)
   (+ ns (* SEC (apply + s))))
+
+(define (to-c-time tm)
+  (make-c-struct (list long long)
+                 (list (floor (/ (inexact->exact (round tm)) SEC))
+                       (modulo (inexact->exact (round tm)) SEC))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; FFI
@@ -64,7 +66,7 @@
                                      #:return-type void  #:arg-types (list '* (list long long) '*))))
     (lambda* (tm proc param #:optional (sch *scheduler*))
       (ff sch
-          (make-c-struct (list long long) (list (floor (/ (to-int tm) SEC)) (modulo (to-int tm) SEC)))
+          (to-c-time tm)
           (procedure->pointer
             void
             (lambda ()
@@ -130,14 +132,14 @@
                                       #:return-type void #:arg-types (list '* '* (list long long) '*))))
     (lambda* (data #:optional (at (now)) (midi *midi*) (scheduler *scheduler*))
       (ff midi scheduler
-          (make-c-struct (list long long) (list (floor (/ (to-int at) SEC)) (modulo (to-int at) SEC)))
+          (to-c-time at)
           (bytevector->pointer data)))))
 
 (define midi-schedule-note
   (let ((ff (foreign-library-function lib-path "midi_schedule_note"
                                      #:return-type int  #:arg-types (list '* '* (list long long) uint32 uint32 uint32 uint32))))
     (lambda* (tm type note velo chan #:optional (midi *midi*) (sch *scheduler*))
-      (ff midi sch (make-c-struct (list long long) (list (floor (/ (to-int tm) SEC)) (modulo (to-int tm) SEC))) type note velo chan))))
+      (ff midi sch (to-c-time tm) type note velo chan))))
 
 (define* (midi-note-on #:optional (note C-4) #:key (at (now)) (duration #f) (velo 127) (chan 0) (midi *midi*) (scheduler *scheduler*))
   (midi-schedule-note at MIDI_NOTEON note velo chan midi scheduler)
@@ -146,6 +148,12 @@
 
 (define* (midi-note-off #:optional (note C-4) #:key (at (now)) (velo 0) (chan 0) (midi *midi*) (scheduler *scheduler*))
   (midi-schedule-note at MIDI_NOTEOFF note velo chan midi scheduler))
+
+(define midi-send-ctrl
+  (let ((ff (foreign-library-function lib-path "midi_schedule_ctrl"
+                                      #:return-type void  #:arg-types (list '* '* (list long long) uint32 uint32 uint32))))
+    (lambda* (ctrl val #:key (midi *midi*) (scheduler *scheduler*) (at (now)) (chan 0))
+             (ff midi scheduler (to-c-time at) ctrl val chan))))
 
 (define* (make-midi-note #:optional (type MIDI_NOTEON) (note C-4) (velo 127) (chan 0))
   (u8-list->bytevector (list type 0 0 253 0 0 0 0 0 0 0 0 0 0 254 253 chan note velo 0 0 0 0 0 0 0 0 0)))

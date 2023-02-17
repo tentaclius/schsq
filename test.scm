@@ -60,7 +60,6 @@
     (car elm)))
 
 (define ii 0)
-
 (define (choose-pad)
   (set! ii (1+ ii))
   (when (= 0 (random 70))
@@ -71,15 +70,13 @@
   (pad (- 7 (remainder ii 8))
        (- 7 (modulo (quotient ii 8) 8))))
 
-(define (looper tm) #t)
-
 (define (looper tm)
   (midi-note-on (choose-pad) #:velo (modulo color 128) #:at tm)
   (schedule (+ tm (* 1/6 SEC) -200) looper (list (+ tm (* 1/6 SEC)))))
 
 (schedule (now) looper (list (now)))
 
-(midi-schedule-event (make-midi-note MIDI_NOTEON (pad 7 7) 0))
+(define (looper tm) #t)
 
 ;;;
 
