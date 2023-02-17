@@ -5,7 +5,8 @@
     v midi-send-note-on, midi-send-note-off
     - midi-send-ctrl
     - midi-send-sysex
-    - midi-recv
+    v midi-receive
+    - midi-schedule (schedule a custom event represented with a bytevector)
 [ ] OSC IO functions
     - osc-init
     - osc-send

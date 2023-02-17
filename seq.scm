@@ -1,5 +1,10 @@
+;;; {{{
+
+(use-modules (scheme base))
 (use-modules (system foreign))
 (use-modules (system foreign-library))
+(use-modules (ice-9 exceptions))
+(use-modules (ice-9 threads))
 
 (define lib-path "./schsq")
 
@@ -27,6 +32,14 @@
                 (reverse defs)
                 (loop (cddr p) (cons `(define ,(car p) ,(cadr p)) defs))))))
 
+(define (to-int n)
+  (inexact->exact (round n)))
+
+(define (now+sec . n)
+  (+ (now) (* (apply + n) SEC)))
+(define (nsec+sec ns . s)
+  (+ ns (* SEC (apply + s))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; FFI
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -46,90 +59,90 @@
       (let ((tm (parse-c-struct (ff) (list long long))))
         (+ (* (car tm) SEC) (cadr tm))))))
 
-(define schedule-event
+(define schedule
   (let ((ff (foreign-library-function lib-path "schedule_guile"
-                                     #:return-type void  #:arg-types (list '* (list long long) '* '*))))
-    (lambda (sch tm proc param)
+                                     #:return-type void  #:arg-types (list '* (list long long) '*))))
+    (lambda* (tm proc param #:optional (sch *scheduler*))
       (ff sch
-          (make-c-struct (list long long) (list (floor (/ tm SEC)) (modulo tm SEC)))
-          (procedure->pointer void proc (list '*))
-          (scm->pointer param)))))
-
-(define* (schedule t proc param #:optional (scheduler *scheduler*))
-  (schedule-event scheduler (+ (now) (* t SEC)) proc param))
+          (make-c-struct (list long long) (list (floor (/ (to-int tm) SEC)) (modulo (to-int tm) SEC)))
+          (procedure->pointer
+            void
+            (lambda ()
+              (with-exception-handler
+                (λ(e) (writeln "ERROR: " e) #f)
+                (λ()  (apply 
+                         (cond
+                           ((symbol? proc) (eval proc (interaction-environment)))
+                           ((procedure? proc) proc)
+                           (else (λ(i) #f)))
+                         param))
+                #:unwind? #t))
+            (list))))))
 
 ;;; MIDI
 
 (def
-  C-0 12    C0  12      C-1 24    C1  24      C-2 36    C2  36      C-3 48    C3  48      C-4 60    C4  60
-  C#0 13    Db0 13      C#1 25    Db1 25      C#2 37    Db2 37      C#3 49    Db3 49      C#4 61    Db4 61
-  D-0 14    D0  14      D-1 26    D1  26      D-2 38    D2  38      D-3 50    D3  50      D-4 62    D4  62
-  D#0 15    Eb0 15      D#1 27    Eb1 27      D#2 39    Eb2 39      D#3 51    Eb3 51      D#4 63    Eb4 63
-  E-0 16    E0  16      E-1 28    E1  28      E-2 40    E2  40      E-3 52    E3  52      E-4 64    E4  64
-  F-0 17    F0  17      F-1 29    F1  29      F-2 41    F2  41      F-3 53    F3  53      F-4 65    F4  65
-  F#0 18    Gb0 18      F#1 30    Gb1 30      F#2 42    Gb2 42      F#3 54    Gb3 54      F#4 66    Gb4 66
-  G-0 19    G0  19      G-1 31    G1  31      G-2 43    G2  43      G-3 55    G3  55      G-4 67    G4  67
-  G#0 20    Ab0 20      G#1 32    Ab1 32      G#2 44    Ab2 44      G#3 56    Ab3 56      G#4 68    Ab4 68
-  A-0 21    A0  21      A-1 33    A1  33      A-2 45    A2  45      A-3 57    A3  57      A-4 69    A4  69
-  A#0 22    Bb0 22      A#1 34    Bb1 34      A#2 46    Bb2 46      A#3 58    Bb3 58      A#4 70    Bb4 70
-  B-0 23    B0  23      B-1 35    B1  35      B-2 47    B2  47      B-3 59    B3  59      B-4 71    B4  71
+  C-0 12   C0  12      C-1 24   C1  24      C-2 36   C2  36      C-3 48   C3  48      C-4 60   C4  60
+  C#0 13   Db0 13      C#1 25   Db1 25      C#2 37   Db2 37      C#3 49   Db3 49      C#4 61   Db4 61
+  D-0 14   D0  14      D-1 26   D1  26      D-2 38   D2  38      D-3 50   D3  50      D-4 62   D4  62
+  D#0 15   Eb0 15      D#1 27   Eb1 27      D#2 39   Eb2 39      D#3 51   Eb3 51      D#4 63   Eb4 63
+  E-0 16   E0  16      E-1 28   E1  28      E-2 40   E2  40      E-3 52   E3  52      E-4 64   E4  64
+  F-0 17   F0  17      F-1 29   F1  29      F-2 41   F2  41      F-3 53   F3  53      F-4 65   F4  65
+  F#0 18   Gb0 18      F#1 30   Gb1 30      F#2 42   Gb2 42      F#3 54   Gb3 54      F#4 66   Gb4 66
+  G-0 19   G0  19      G-1 31   G1  31      G-2 43   G2  43      G-3 55   G3  55      G-4 67   G4  67
+  G#0 20   Ab0 20      G#1 32   Ab1 32      G#2 44   Ab2 44      G#3 56   Ab3 56      G#4 68   Ab4 68
+  A-0 21   A0  21      A-1 33   A1  33      A-2 45   A2  45      A-3 57   A3  57      A-4 69   A4  69
+  A#0 22   Bb0 22      A#1 34   Bb1 34      A#2 46   Bb2 46      A#3 58   Bb3 58      A#4 70   Bb4 70
+  B-0 23   B0  23      B-1 35   B1  35      B-2 47   B2  47      B-3 59   B3  59      B-4 71   B4  71
   ;
-  C-5 72    C5  72      C-6 84    C6  84      C-7 96    C7  96      C-8 108   C8  108     C-9 120   C9  120
-  C#5 73    Db5 73      C#6 85    Db6 85      C#7 97    Db7 97      C#8 109   Db8 109     C#9 121   Db9 121
-  D-5 74    D5  74      D-6 86    D6  86      D-7 98    D7  98      D-8 110   D8  110     D-9 122   D9  122
-  D#5 75    Eb5 75      D#6 87    Eb6 87      D#7 99    Eb7 99      D#8 111   Eb8 111     D#9 123   Eb9 123
-  E-5 76    E5  76      E-6 88    E6  88      E-7 100   E7  100     E-8 112   E8  112     E-9 124   E9  124
-  F-5 77    F5  77      F-6 89    F6  89      F-7 101   F7  101     F-8 113   F8  113     F-9 125   F9  125
-  F#5 78    Gb5 78      F#6 90    Gb6 90      F#7 102   Gb7 102     F#8 114   Gb8 114     F#9 126   Gb9 126
-  G-5 79    G5  79      G-6 91    G6  91      G-7 103   G7  103     G-8 115   G8  115     G-9 127   G9  127
-  G#5 80    Ab5 80      G#6 92    Ab6 92      G#7 104   Ab7 104     G#8 116   Ab8 116
-  A-5 81    A5  81      A-6 93    A6  93      A-7 105   A7  105     A-8 117   A8  117
-  A#5 82    Bb5 82      A#6 94    Bb6 94      A#7 106   Bb7 106     A#8 118   Bb8 118
-  B-5 83    B5  83      B-6 95    B6  95      B-7 107   B7  107     B-8 119   B8  119)
+  C-5 72   C5  72      C-6 84   C6  84      C-7 96   C7  96      C-8 108  C8  108     C-9 120  C9  120
+  C#5 73   Db5 73      C#6 85   Db6 85      C#7 97   Db7 97      C#8 109  Db8 109     C#9 121  Db9 121
+  D-5 74   D5  74      D-6 86   D6  86      D-7 98   D7  98      D-8 110  D8  110     D-9 122  D9  122
+  D#5 75   Eb5 75      D#6 87   Eb6 87      D#7 99   Eb7 99      D#8 111  Eb8 111     D#9 123  Eb9 123
+  E-5 76   E5  76      E-6 88   E6  88      E-7 100  E7  100     E-8 112  E8  112     E-9 124  E9  124
+  F-5 77   F5  77      F-6 89   F6  89      F-7 101  F7  101     F-8 113  F8  113     F-9 125  F9  125
+  F#5 78   Gb5 78      F#6 90   Gb6 90      F#7 102  Gb7 102     F#8 114  Gb8 114     F#9 126  Gb9 126
+  G-5 79   G5  79      G-6 91   G6  91      G-7 103  G7  103     G-8 115  G8  115     G-9 127  G9  127
+  G#5 80   Ab5 80      G#6 92   Ab6 92      G#7 104  Ab7 104     G#8 116  Ab8 116
+  A-5 81   A5  81      A-6 93   A6  93      A-7 105  A7  105     A-8 117  A8  117
+  A#5 82   Bb5 82      A#6 94   Bb6 94      A#7 106  Bb7 106     A#8 118  Bb8 118
+  B-5 83   B5  83      B-6 95   B6  95      B-7 107  B7  107     B-8 119  B8  119)
 
 (define midi-init
   (let ((ff (foreign-library-function lib-path "midi_init"
                                      #:return-type '*  #:arg-types (list '*))))
     (lambda (name)
-      (when (not *scheduler*) (set! *scheduler* (sch-init)))
-      (set! *midi* (ff (string->pointer name))))))
+      (when (not *scheduler*)
+        (set! *scheduler* (sch-init)))
+      (set! *midi* (ff (string->pointer name)))
+      *midi*)))
 
-(define midi-send-noteon-direct
+(define midi-note-direct
   (let ((ff (foreign-library-function lib-path "midi_send_note"
                                      #:return-type int  #:arg-types (list '* uint32 uint32 uint32 uint32))))
-    (lambda (handle note velo chan)
-      (ff handle 6 note velo chan))))
-
-(define midi-send-noteoff-direct
-  (let ((ff (foreign-library-function lib-path "midi_send_note"
-                                     #:return-type int  #:arg-types (list '* uint32 uint32 uint32 uint32))))
-    (lambda (handle note velo chan)
-      (ff handle 7 note velo chan))))
+    (lambda* (type note velo chan #:optional (handle *midi*))
+      (ff handle type note velo chan))))
 
 (define schedule-midi-note
   (let ((ff (foreign-library-function lib-path "schedule_midi_note"
                                      #:return-type int  #:arg-types (list '* '* (list long long) uint32 uint32 uint32 uint32))))
-    (lambda (midi sch tm type note velo chan)
-      (ff midi sch (make-c-struct (list long long) (list (floor (/ tm SEC)) (modulo tm SEC))) type note velo chan))))
+    (lambda* (tm type note velo chan #:optional (midi *midi*) (sch *scheduler*))
+      (ff midi sch (make-c-struct (list long long) (list (floor (/ (to-int tm) SEC)) (modulo (to-int tm) SEC))) type note velo chan))))
 
-(define* (midi-note-on #:optional (note C-4) #:key (at 0) (duration #f) (velo 1) (chan 0) (midi *midi*) (scheduler *scheduler*))
-  (let ((now (now)))
-    (schedule-midi-note midi scheduler (+ now (* at SEC)) MIDI_NOTEON note velo chan)
-    (when duration
-      (schedule-midi-note midi scheduler (+ now (* (+ at duration) SEC)) MIDI_NOTEOFF note velo chan))))
+(define* (midi-note-on #:optional (note C-4) #:key (at (now)) (duration #f) (velo 1) (chan 0) (midi *midi*) (scheduler *scheduler*))
+  (schedule-midi-note at MIDI_NOTEON note velo chan midi scheduler)
+  (when duration
+    (schedule-midi-note (+ at duration) MIDI_NOTEOFF note velo chan midi scheduler)))
 
-(define* (midi-note-off #:optional (note C-4) #:key (at 0) (velo 1) (chan 0) (midi *midi*) (scheduler *scheduler*))
-  (schedule-midi-note midi scheduler (+ (now) (* at SEC)) MIDI_NOTEOFF note velo chan))
+(define* (midi-note-off #:optional (note C-4) #:key (at (now)) (velo 1) (chan 0) (midi *midi*) (scheduler *scheduler*))
+  (schedule-midi-note at MIDI_NOTEOFF note velo chan midi scheduler))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; TEST
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define* (midi-receive #:optional (midi *midi*))
+  (let* ((ff (foreign-library-function lib-path "midi_receive"
+                                       #:return-type '* #:arg-types (list '*)))
+         (ev (ff midi)))
+    (cond
+      ((null-pointer? ev) #vu8())
+      (else (pointer->bytevector ev 28)))))
 
-(midi-init "CL")
-
-(midi-note-on C-5 #:at 0)
-(midi-note-off C-5 #:at 2)
-
-(schedule 1 (lambda(n) (writeln (pointer->scm n))) 11)
-
-(schedule-event *scheduler* (now) (lambda(n) (writeln n)) 11)
+;;; }}}

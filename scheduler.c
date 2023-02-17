@@ -165,29 +165,3 @@ schedule_event(scheduler_t *sch, struct timespec tm, event_fn_t fnP, void *param
    g_async_queue_push_sorted(sch->queue, evt, event_compare_time, NULL);
    pthread_kill(sch->thread_id, SIGUSR1);
 }
-
-//=====================================================================================================
-// TEST
-
-void play(void *arg)
-{
-   printf("play %p\n", arg);
-}
-
-void
-test()
-{
-   scheduler_t sch;
-   sch_init(&sch);
-
-   sleep(1);
-   struct timespec t = sch_now(),
-                   d2 = {.tv_sec = 2, .tv_nsec = 500000000};
-   schedule_event(&sch, time_add(t, d2), play, (void*)2);
-   schedule_event(&sch, time_add_nsec(t, 2000000000), play, (void*)1);
-   schedule_event(&sch, t, play, (void*)0);
-   sleep(1);
-   schedule_event(&sch, sch_now(), play, (void*)-1);
-
-   getchar();
-}

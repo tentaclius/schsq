@@ -4,6 +4,8 @@
 #include <alsa/asoundlib.h>
 #include "scheduler.h"
 
+// TODO: snd_seq_event_input
+
 typedef struct {
    snd_seq_t *seq;
    int port;
@@ -14,6 +16,7 @@ midi_handler_t*
 midi_init(char *name)
 {
    midi_handler_t *hndl = (midi_handler_t*) malloc(sizeof(midi_handler_t));
+   assert(hndl != NULL);
 
    if (snd_seq_open(&hndl->seq, "default", SND_SEQ_OPEN_DUPLEX, 0) != 0) {
       perror("snd_seq_open");
@@ -50,6 +53,15 @@ midi_send_note(midi_handler_t *h, unsigned type, unsigned note, unsigned velo, u
 
    snd_seq_event_output(h->seq, event);
    snd_seq_drain_output(h->seq);
+}
+
+snd_seq_event_t*
+midi_receive(midi_handler_t *h)
+{
+   snd_seq_nonblock(h->seq, 0);
+   snd_seq_event_t *ev = NULL;
+   snd_seq_event_input(h->seq, &ev);
+   return ev;
 }
 
 typedef struct {
