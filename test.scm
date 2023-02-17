@@ -79,6 +79,8 @@
 
 (schedule (now) looper (list (now)))
 
+(midi-schedule-event (make-midi-note MIDI_NOTEON (pad 7 7) 0))
+
 ;;;
 
 (midi-init "CL")
@@ -91,10 +93,5 @@
     (let loop ()
       (midi-handler (midi-receive))
       (loop))))
-
-(define noteon  #vu8(6 0 0 253 0 0 0 0 0 0 0 0 0 0 254 253 0 60 127 0 0 0 0 0 0 0 0 0))
-(define noteoff #vu8(7 0 0 253 0 0 0 0 0 0 0 0 0 0 254 253 0 60 0   0 0 0 0 0 0 0 0 0))
-
-(midi-send-raw noteoff)
 
 (midi-note-on C-4)

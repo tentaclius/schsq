@@ -41,3 +41,13 @@ Lower level function, shouldn't be used without the scheduler.
 - `(midi-receive #:optional (midi *midi*))` -- receive a MIDI event. Returns a byte-vector with the MIDI data.
 
 There are also midi notes defined as variables from `C-0` to `B-8` (example: `C-4`, `C#4`, `Db4` etc).
+
+# Current TODO List
+
+- [ ] midi-send-ctrl
+- [ ] osc-init
+- [ ] osc-send
+- [ ] osc-receive
+- [ ] midi-send sysex
+- [ ] cs-send-score
+- [ ] cs-send-instr
