@@ -1,4 +1,4 @@
-(load "seq.scm")
+(load "schsq.scm")
 
 ;(tracker :play
 ;  #(0    0     0     1     2)
@@ -18,8 +18,9 @@
     (schedule (+ (now) (* 1 SEC) -200) loop
               (list (list-tail nts (vector-length channels)) (now+sec 1)))))
 
-;;;;;
+;;; Launchpad lightshow
 
+(midi-init "CL")
 
 (define *pads*
   (vector 
@@ -34,10 +35,6 @@
 
 (define (pad x y)
   (vector-ref (vector-ref *pads* (modulo x 8)) y))
-
-;;; Launchpad lightshow
-
-(midi-init "CL")
 
 (define color 0)
 (define l0 (list 
@@ -83,8 +80,6 @@
 (schedule (now) looper (list (now)))
 
 (call-with-new-thread
-  (lambda ()
-    (let loop ()
-      (writeln (midi-receive))
-      (loop))))
+  (let ((loop (λ() (writeln (midi-receive)) (loop))))
+    loop))
 
