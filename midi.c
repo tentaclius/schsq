@@ -53,6 +53,10 @@ midi_send_note(midi_handler_t *h, unsigned type, unsigned note, unsigned velo, u
 
    snd_seq_event_output(h->seq, event);
    snd_seq_drain_output(h->seq);
+
+   for (unsigned i = 0; i < sizeof(snd_seq_event_t); i ++)
+      printf("%d ", ((uint8_t*) event)[i]);
+   puts("");
 }
 
 snd_seq_event_t*
@@ -73,7 +77,7 @@ typedef struct {
 } midi_arg_t;
 
 void 
-execute_midi(void *arg)
+execute_midi_note(void *arg)
 {
    midi_arg_t *m = (midi_arg_t*) arg;
    midi_send_note(m->h, m->type, m->note, m->velo, m->chan);
@@ -89,5 +93,34 @@ schedule_midi_note(midi_handler_t *h, scheduler_t *sch, struct timespec tm, unsi
    arg->note = note;
    arg->velo = velo;
    arg->chan = chan;
-   schedule_event(sch, tm, execute_midi, arg);
+   schedule_event(sch, tm, execute_midi_note, arg);
+}
+
+void
+midi_send_raw_event(midi_handler_t *h, void *ptr)
+{
+   snd_seq_event_t *event = (snd_seq_event_t*) ptr;
+   snd_seq_event_output(h->seq, event);
+   snd_seq_drain_output(h->seq);
+}
+
+struct midi_event_param_t {
+   midi_handler_t *midi;
+   void *event;
+};
+
+void
+execute_midi_event(void *arg)
+{
+   struct midi_event_param_t *param = (struct midi_event_param_t*) arg;
+   midi_send_raw_event(param->midi, param->event);
+}
+
+void
+schedule_midi_event(midi_handler_t *h, scheduler_t *sch, struct timespec tm, void *ptr)
+{
+   struct midi_event_param_t *param = (struct midi_event_param_t*) malloc(sizeof(struct midi_event_param_t));
+   param->midi = h;
+   param->event = ptr;
+   schedule_event(sch, tm, execute_midi_event, param);
 }

@@ -79,7 +79,22 @@
 
 (schedule (now) looper (list (now)))
 
-(call-with-new-thread
-  (let ((loop (λ() (writeln (midi-receive)) (loop))))
-    loop))
+;;;
 
+(midi-init "CL")
+
+(define (midi-handler event)
+  (writeln event))
+
+(call-with-new-thread
+  (lambda ()
+    (let loop ()
+      (midi-handler (midi-receive))
+      (loop))))
+
+(define noteon  #vu8(6 0 0 253 0 0 0 0 0 0 0 0 0 0 254 253 0 60 127 0 0 0 0 0 0 0 0 0))
+(define noteoff #vu8(7 0 0 253 0 0 0 0 0 0 0 0 0 0 254 253 0 60 0   0 0 0 0 0 0 0 0 0))
+
+(midi-send-raw noteoff)
+
+(midi-note-on C-4)

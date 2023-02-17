@@ -6,7 +6,7 @@ to be used as an algorithmic composition tool.
 It is in an early stage of development at the moment. The plan is to grow it into a Guile-powered MIDI/OSC sequencer for algorithmic composition as an
 LV2 plugion or standalone app with basis in C and higher level abstractions in Guile.
 
-Currently allows to send/receive MIDI data in a very simple manner.
+Currently allows to send/receive MIDI data via alsaseq in a very simple manner.
 There are plans to add OSC and CSound interfaces.
 As a far fetched plans there might be SuperCollider interface too.
 
@@ -37,6 +37,7 @@ handles to *scheduler* and *midi* respectively.
 - `(midi-note-off #:optional (note C-4) #:key (at (now)) (velo 1) (chan 0) (midi *midi*) (scheduler *scheduler*))` -- schedule note-off event.
 - `(schedule-midi-note tm type note velo chan #:optional (midi *midi*) (sch *scheduler*))` -- schedule midi note event.
 - `(midi-note-direct type note velo chan #:optional (handle *midi*))` -- send note event directly, without the scheduler.
+Lower level function, shouldn't be used without the scheduler.
 - `(midi-receive #:optional (midi *midi*))` -- receive a MIDI event. Returns a byte-vector with the MIDI data.
 
 There are also midi notes defined as variables from `C-0` to `B-8` (example: `C-4`, `C#4`, `Db4` etc).

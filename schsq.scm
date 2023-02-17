@@ -129,12 +129,12 @@
     (lambda* (tm type note velo chan #:optional (midi *midi*) (sch *scheduler*))
       (ff midi sch (make-c-struct (list long long) (list (floor (/ (to-int tm) SEC)) (modulo (to-int tm) SEC))) type note velo chan))))
 
-(define* (midi-note-on #:optional (note C-4) #:key (at (now)) (duration #f) (velo 1) (chan 0) (midi *midi*) (scheduler *scheduler*))
+(define* (midi-note-on #:optional (note C-4) #:key (at (now)) (duration #f) (velo 127) (chan 0) (midi *midi*) (scheduler *scheduler*))
   (schedule-midi-note at MIDI_NOTEON note velo chan midi scheduler)
   (when duration
     (schedule-midi-note (+ at duration) MIDI_NOTEOFF note velo chan midi scheduler)))
 
-(define* (midi-note-off #:optional (note C-4) #:key (at (now)) (velo 1) (chan 0) (midi *midi*) (scheduler *scheduler*))
+(define* (midi-note-off #:optional (note C-4) #:key (at (now)) (velo 0) (chan 0) (midi *midi*) (scheduler *scheduler*))
   (schedule-midi-note at MIDI_NOTEOFF note velo chan midi scheduler))
 
 (define* (midi-receive #:optional (midi *midi*))
@@ -144,5 +144,13 @@
     (cond
       ((null-pointer? ev) #vu8())
       (else (pointer->bytevector ev 28)))))
+
+(define midi-send-raw
+  (let ((ff (foreign-library-function lib-path "schedule_midi_event"
+                                      #:return-type void #:arg-types (list '* '* (list long long) '*))))
+    (lambda* (data #:optional (at (now)) (midi *midi*) (scheduler *scheduler*))
+      (ff midi scheduler
+          (make-c-struct (list long long) (list (floor (/ (to-int at) SEC)) (modulo (to-int at) SEC)))
+          (bytevector->pointer data)))))
 
 ;;; }}}
