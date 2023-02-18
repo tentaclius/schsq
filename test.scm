@@ -19,6 +19,7 @@
               (list (list-tail nts (vector-length channels)) (now+sec 1)))))
 
 ;;; Launchpad lightshow
+;;; {{{
 
 (midi-init "CL")
 
@@ -76,6 +77,8 @@
 
 (schedule (now) looper (list (now)))
 
+;;; }}}
+
 (define (looper tm) #t)
 
 ;;;
@@ -92,3 +95,40 @@
       (loop))))
 
 (midi-note-on C-4)
+
+;;;;
+
+(midi-init "CL")
+
+(ev-schedule (make <sim> :events (list 1 2 3))
+             (ht :fn (λ(el attrs) (writeln (ht->str attrs)))
+                 :start (beat-quant 1)
+                 :dur 1/4))
+
+(ev-schedule (make <seq> :events (list 1 2 3))
+             (ht :fn (λ(el attr) (writeln (ht->str attr)))
+                 :start (beat-quant 1)
+                 :dur 2))
+
+(at-beat b (midi-note-on ev :dur dur))
+
+(define-macro (at-beat beat ))
+
+(ev-schedule (make <seq> :events (list D-4
+                                       (make <seq> :events (list F-4 F-5))
+                                       (make <sim> :events (list G-4 C-5))
+                                       A-4))
+             (ht :fn (λ(e attr)
+                       (midi-note-on e :at (beat->time (hash-ref attr :start))
+                                     :duration (beat->time (hash-ref attr :dur))))
+                 :dur 2))
+
+(beat->time 1/3)
+
+(let ((n (now)))
+  (midi-note-on C-4 :at n :duration (* 1 SEC))
+  (midi-note-on D-4 :at (+ n (* 1 SEC)) :duration (* 1 SEC)))
+
+(midi-note-on C-4 :duration (* 1 SEC))
+
+(beats)

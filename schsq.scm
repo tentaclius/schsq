@@ -1,5 +1,7 @@
 ;;; {{{
 
+(use-modules (oop goops))
+(use-modules (oop goops describe))
 (use-modules (system foreign))
 (use-modules (system foreign-library))
 (use-modules (ice-9 exceptions))
@@ -12,6 +14,8 @@
 (define MIDI_NOTEOFF 7)
 (define SEC 1000000000)
 
+(read-set! keywords 'prefix)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; UTILITARY FUNCTIONS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -20,11 +24,17 @@
   `(lambda ,args ,@body))
 
 (define (cat . args)
-  (with-output-to-string (lambda() (for-each display args))) )
+  (with-output-to-string (λ() (for-each display args))) )
 
 (define (writeln . args)
   (display (apply cat args))
   (newline))
+
+(define (ht->str ht)
+  (cat "{"
+       (string-join (hash-map->list (λ(key val) (cat key " " val)) ht)
+                    ", ")
+       "}"))
 
 (define-macro (def . vals)
   `(begin ,@(let loop ((p vals) (defs (list)))
@@ -32,15 +42,22 @@
                 (reverse defs)
                 (loop (cddr p) (cons `(define ,(car p) ,(cadr p)) defs))))))
 
-(define (now+sec . n)
-  (+ (now) (* (apply + n) SEC)))
+(define-macro (ht . pairs)
+  (let ((h (gensym)))
+    `(let ((,h (make-hash-table)))
+       ,@(let loop ((p pairs) (result (list)))
+           (cond
+             ((or (null? p) (null? (cdr p))) result)
+             (else (loop (cddr p) (cons `(hash-set! ,h ,(car p) ,(cadr p)) result)))))
+       ,h)))
+
 (define (nsec+sec ns . s)
   (+ ns (* SEC (apply + s))))
 
 (define (to-c-time tm)
   (make-c-struct (list long long)
-                 (list (floor (/ (inexact->exact (round tm)) SEC))
-                       (modulo (inexact->exact (round tm)) SEC))))
+                 (list (inexact->exact (floor (/ tm SEC)))
+                       (inexact->exact (modulo (floor tm) SEC)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; FFI
@@ -61,6 +78,9 @@
       (let ((tm (parse-c-struct (ff) (list long long))))
         (+ (* (car tm) SEC) (cadr tm))))))
 
+(define (now+sec . n)
+  (+ (now) (* (apply + n) SEC)))
+
 (define schedule
   (let ((ff (foreign-library-function lib-path "schedule_guile"
                                      #:return-type void  #:arg-types (list '* (list long long) '*))))
@@ -80,6 +100,23 @@
                          param))
                 #:unwind? #t))
             (list))))))
+
+;;; Beats
+
+(define *bpm* 60)
+
+(define (time->beat tm)
+  (* *bpm* (/ tm 60 SEC)))
+
+(define (beat->time bt)
+  (* bt 60 SEC (/ *bpm*)))
+
+(define (beats)
+  (time->beats (now)))
+
+(define (beat-quant n)
+  (let ((b (ceiling (beats))))
+    (+ b (- n (modulo b n)))))
 
 ;;; MIDI
 
@@ -157,5 +194,48 @@
 
 (define* (make-midi-note #:optional (type MIDI_NOTEON) (note C-4) (velo 127) (chan 0))
   (u8-list->bytevector (list type 0 0 253 0 0 0 0 0 0 0 0 0 0 254 253 chan note velo 0 0 0 0 0 0 0 0 0)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; SCHEME ABSTRACTIONS
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (merge-attrs . hn)
+  (let ((result (make-hash-table)))
+    (for-each
+      (λ(hs) (hash-for-each
+                (λ(key value) (hash-set! result key value))
+                hs))
+      hn)
+    result))
+
+(define-class <events> ()
+  (events #:init-keyword #:events
+          #:init-form (list)
+          #:accessor events)
+  (attrib #:init-keyword #:attrib
+          #:init-form (make-hash-table)
+          #:accessor attrib))
+
+(define-class <seq> (<events>))
+(define-class <sim> (<events>))
+
+(define-method (ev-schedule (el <seq>) attr)
+   (let ((start (hash-ref attr #:start (beats)))
+         (dur   (hash-ref attr #:dur 1))
+         (len   (length (events el))))
+     (let loop ((i 0) (evx (events el)))
+       (when (not (null? evx))
+           (ev-schedule (car evx)
+                        (merge-attrs attr (attrib el)
+                                     (ht #:start (+ start (* dur (/ i len))) #:dur (/ dur len))))
+           (loop (1+ i) (cdr evx))))))
+
+(define-method (ev-schedule (el <events>) attr)
+   (for-each (λ(x) (ev-schedule x (merge-attrs attr (attrib el))))
+             (events el)))
+
+(define-method (ev-schedule el attr)
+   (let ((fun (hash-ref attr #:fn)))
+     (when fun (fun el attr))))
 
 ;;; }}}

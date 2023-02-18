@@ -12,6 +12,8 @@ As a far fetched plans there might be SuperCollider interface too.
 
 All it is so far is a set of functions and FFI wrappers within `schsq.scm` file. The functions are described below.
 
+For the moment I don't have resources to port it to any other platform than Linux, so it is Linux only.
+
 # Utilitary functions/macros
 
 - `(λ args . body)`  
@@ -58,8 +60,8 @@ There are also midi notes defined as variables from `C-0` to `B-8` (example: `C-
 
 # Current TODO List
 
-- [ ] guile classes for sequencing: seq%, sim%, attr%
-- [ ] generic: seq-schedule
+- [ ] guile abstractions for creating, starting and stopping a sequence
+- [ ] guile tracker macro
 - [ ] osc-init
 - [ ] osc-send
 - [ ] osc-receive
