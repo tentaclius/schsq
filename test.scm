@@ -1,4 +1,6 @@
-(load "schsq.scm")
+(add-to-load-path ".")
+(use-modules (schsq))
+(read-set! keywords 'prefix)
 
 ;(tracker :play
 ;  #(0    0     0     1     2)
@@ -100,35 +102,33 @@
 
 (midi-init "CL")
 
-(ev-schedule (make <sim> :events (list 1 2 3))
-             (ht :fn (λ(el attrs) (writeln (ht->str attrs)))
-                 :start (beat-quant 1)
-                 :dur 1/4))
+(define (synth-fn e attr)
+  (midi-note-on e
+       :velo     (hash-ref attr :amp 127)
+       :at       (beat->time (hash-ref attr :start (beats)))
+       :duration (beat->time (hash-ref attr :dur 1))))
 
-(ev-schedule (make <seq> :events (list 1 2 3))
-             (ht :fn (λ(el attr) (writeln (ht->str attr)))
-                 :start (beat-quant 1)
-                 :dur 2))
+(def play-list
+     (list ;(Sa (ht :dur 1/8 :amp 1 :fn synth-fn)
+           ;    D2 F2 Bb2 A2 C3 D3)
+           (Sa (ht :fn synth-fn :dur 0.9999999)
+               D5)
+           ))
 
-(at-beat b (midi-note-on ev :dur dur))
+(define (scheduler beat)
+  (for-each (λ(pl) (ev-schedule pl (ht :start beat)))
+            play-list)
+  (schedule (- (beat->time (1+ beat)) 1000) 'scheduler (list (1+ beat))))
+(schedule (- (beat->time (beat-quant 1)) 1000)
+          scheduler (list (beat-quant 1)))
 
-(define-macro (at-beat beat ))
+(define (scheduler beat) #f)
 
-(ev-schedule (make <seq> :events (list D-4
-                                       (make <seq> :events (list F-4 F-5))
-                                       (make <sim> :events (list G-4 C-5))
-                                       A-4))
-             (ht :fn (λ(e attr)
-                       (midi-note-on e :at (beat->time (hash-ref attr :start))
-                                     :duration (beat->time (hash-ref attr :dur))))
-                 :dur 2))
 
-(beat->time 1/3)
+(metro-start)
+(metro-stop)
 
-(let ((n (now)))
-  (midi-note-on C-4 :at n :duration (* 1 SEC))
-  (midi-note-on D-4 :at (+ n (* 1 SEC)) :duration (* 1 SEC)))
+;;;
 
-(midi-note-on C-4 :duration (* 1 SEC))
-
-(beats)
+(metro-add :solo (Sa (ht :fn synth-fn)
+                     ))

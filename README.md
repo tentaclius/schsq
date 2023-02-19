@@ -6,6 +6,10 @@ to be used as an algorithmic composition tool.
 It is in an early stage of development at the moment. The plan is to grow it into a Guile-powered MIDI/OSC sequencer for algorithmic composition as an
 LV2 plugion or standalone app with basis in C and higher level abstractions in Guile.
 
+It's goals are very similar to what Common Music used to be, but it looks like it is no longer maintained unfortunately.
+Apart from that I'd like to see sequencing a bit differently,
+it is somewhat of a mix between cl-collider and Tidal Cycles ways of doing things.
+
 Currently allows to send/receive MIDI data via alsaseq in a very simple manner.
 There are plans to add OSC and CSound interfaces.
 As a far fetched plans there might be SuperCollider interface too.
@@ -16,8 +20,6 @@ For the moment I don't have resources to port it to any other platform than Linu
 
 # Utilitary functions/macros
 
-- `(λ args . body)`  
-just a shorthand for `(lambda ...)`.
 - `(cat . args)`  
 convert every argument to string and concatenate them.
 - `(writeln . args)`  
@@ -60,8 +62,9 @@ There are also midi notes defined as variables from `C-0` to `B-8` (example: `C-
 
 # Current TODO List
 
-- [ ] guile abstractions for creating, starting and stopping a sequence
-- [ ] guile tracker macro
+- [ ] error handling in schedulers
+- [ ] sequence speed
+- [ ] port `sc`, `euclidian` and `chord` from CL
 - [ ] osc-init
 - [ ] osc-send
 - [ ] osc-receive

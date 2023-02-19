@@ -1,4 +1,25 @@
-;;; {{{
+(define-module (schsq)
+               #:export (MIDI_NOTEON MIDI_NOTEOFF SEC
+                         cat writeln ht->str def ht nsec+sec now+sec
+                         sch-init sch-stop now schedule
+                         *bpm* time->beat beat->time beats beat-quant
+                         midi-init midi-receive midi-schedule-event midi-schedule-note
+                         midi-note-on midi-note-off midi-send-ctrl make-midi-note
+                         merge-attrs <events> <seq> <sim> ev-schedule S Sa Sl Sal U Ua Ul Ual A
+                         metro-add metro-start metro-stop
+                         C-0 C0   C-1  C1   C-2  C2   C-3  C3   C-4  C4    C-5 C5   C-6  C6   C-7  C7   C-8  C8   C-9  C9   
+                         C#0 Db0  C#1  Db1  C#2  Db2  C#3  Db3  C#4  Db4   C#5 Db5  C#6  Db6  C#7  Db7  C#8  Db8  C#9  Db9 
+                         D-0 D0   D-1  D1   D-2  D2   D-3  D3   D-4  D4    D-5 D5   D-6  D6   D-7  D7   D-8  D8   D-9  D9  
+                         D#0 Eb0  D#1  Eb1  D#2  Eb2  D#3  Eb3  D#4  Eb4   D#5 Eb5  D#6  Eb6  D#7  Eb7  D#8  Eb8  D#9  Eb9 
+                         E-0 E0   E-1  E1   E-2  E2   E-3  E3   E-4  E4    E-5 E5   E-6  E6   E-7  E7   E-8  E8   E-9  E9  
+                         F-0 F0   F-1  F1   F-2  F2   F-3  F3   F-4  F4    F-5 F5   F-6  F6   F-7  F7   F-8  F8   F-9  F9  
+                         F#0 Gb0  F#1  Gb1  F#2  Gb2  F#3  Gb3  F#4  Gb4   F#5 Gb5  F#6  Gb6  F#7  Gb7  F#8  Gb8  F#9  Gb9 
+                         G-0 G0   G-1  G1   G-2  G2   G-3  G3   G-4  G4    G-5 G5   G-6  G6   G-7  G7   G-8  G8   G-9  G9  
+                         G#0 Ab0  G#1  Ab1  G#2  Ab2  G#3  Ab3  G#4  Ab4   G#5 Ab5  G#6  Ab6  G#7  Ab7  G#8  Ab8
+                         A-0 A0   A-1  A1   A-2  A2   A-3  A3   A-4  A4    A-5 A5   A-6  A6   A-7  A7   A-8  A8 
+                         A#0 Bb0  A#1  Bb1  A#2  Bb2  A#3  Bb3  A#4  Bb4   A#5 Bb5  A#6  Bb6  A#7  Bb7  A#8  Bb8
+                         B-0 B0   B-1  B1   B-2  B2   B-3  B3   B-4  B4    B-5 B5   B-6  B6   B-7  B7   B-8  B8 
+                         ))
 
 (use-modules (oop goops))
 (use-modules (oop goops describe))
@@ -14,14 +35,9 @@
 (define MIDI_NOTEOFF 7)
 (define SEC 1000000000)
 
-(read-set! keywords 'prefix)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; UTILITARY FUNCTIONS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define-macro (λ args . body)
-  `(lambda ,args ,@body))
 
 (define (cat . args)
   (with-output-to-string (λ() (for-each display args))) )
@@ -112,7 +128,7 @@
   (* bt 60 SEC (/ *bpm*)))
 
 (define (beats)
-  (time->beats (now)))
+  (time->beat (now)))
 
 (define (beat-quant n)
   (let ((b (ceiling (beats))))
@@ -196,7 +212,7 @@
   (u8-list->bytevector (list type 0 0 253 0 0 0 0 0 0 0 0 0 0 254 253 chan note velo 0 0 0 0 0 0 0 0 0)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; SCHEME ABSTRACTIONS
+;;; SEQUENCING ABSTRACTIONS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (merge-attrs . hn)
@@ -226,8 +242,9 @@
      (let loop ((i 0) (evx (events el)))
        (when (not (null? evx))
            (ev-schedule (car evx)
-                        (merge-attrs attr (attrib el)
-                                     (ht #:start (+ start (* dur (/ i len))) #:dur (/ dur len))))
+                        (merge-attrs attr
+                                     (ht #:start (+ start (* dur (/ i len))) #:dur (/ dur len))
+                                     (attrib el)))
            (loop (1+ i) (cdr evx))))))
 
 (define-method (ev-schedule (el <events>) attr)
@@ -238,4 +255,39 @@
    (let ((fun (hash-ref attr #:fn)))
      (when fun (fun el attr))))
 
-;;; }}}
+(define (S . events) (make <seq> #:events events))
+(define (Sl events)  (make <seq> #:events events))
+(define (U . events) (make <sim> #:events events))
+(define (Ul events)  (make <sim> #:events events))
+(define (Sa attrs . events)
+  (make <seq> #:events events #:attrib attrs))
+(define (Sal attrs events)
+  (make <seq> #:events events #:attrib attrs))
+(define (Ua attrs . events)
+  (make <sim> #:events events #:attrib attrs))
+(define (Ual attrs events)
+  (make <sim> #:events events #:attrib attrs))
+(define (A attrs . events)
+  (make <sim> #:events events #:attrib attrs))
+
+;;; Metro
+
+(define *metro-seqs* (make-hash-table))
+(define *metro-running* #f)
+
+(define (metro-add name seq)
+  (hash-set! *metro-seqs* name seq))
+
+(define (metro-play beat)
+  (when *metro-running*
+    (hash-for-each (λ(key value) (ev-schedule value (ht :start beat)))
+                   *metro-seqs*)
+    (schedule (- (beat->time (1+ beat)) 1000) metro-play (list (1+ beat)))))
+
+(define (metro-start)
+  (set! *metro-running* #t)
+  (schedule (- (beat->time (beat-quant 1)) 1000)
+            metro-play (list (beat-quant 1))))
+
+(define (metro-stop)
+  (set! *metro-running* #f))
