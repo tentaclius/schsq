@@ -62,8 +62,10 @@ There are also midi notes defined as variables from `C-0` to `B-8` (example: `C-
 
 # Current TODO List
 
-- [ ] error handling in schedulers
+- [ ] error handling in schedulers: need to test
+- [ ] MIDI SysEx
 - [ ] sequence speed
+- [ ] port to CL: metro
 - [ ] port `sc`, `euclidian` and `chord` from CL
 - [ ] osc-init
 - [ ] osc-send

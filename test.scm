@@ -116,7 +116,11 @@
            ))
 
 (define (scheduler beat)
-  (for-each (λ(pl) (ev-schedule pl (ht :start beat)))
+  (for-each (λ(pl)
+              (with-exception-handler
+                (λ(e) (writeln "ERROR: " e) #f)
+                (ev-schedule pl (ht :start beat))
+                #:unwind #t))
             play-list)
   (schedule (- (beat->time (1+ beat)) 1000) 'scheduler (list (1+ beat))))
 (schedule (- (beat->time (beat-quant 1)) 1000)
@@ -124,11 +128,9 @@
 
 (define (scheduler beat) #f)
 
-
 (metro-start)
 (metro-stop)
 
 ;;;
 
-(metro-add :solo (Sa (ht :fn synth-fn)
-                     ))
+(metro-add :solo (Sa (ht :fn synth-fn)))

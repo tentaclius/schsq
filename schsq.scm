@@ -280,7 +280,11 @@
 
 (define (metro-play beat)
   (when *metro-running*
-    (hash-for-each (λ(key value) (ev-schedule value (ht :start beat)))
+    (hash-for-each (λ(key value)
+                     (with-exception-handler
+                       (λ(e) (writeln "ERROR: " e) #f)
+                       (ev-schedule value (ht :start beat))
+                       #:unwind #t))
                    *metro-seqs*)
     (schedule (- (beat->time (1+ beat)) 1000) metro-play (list (1+ beat)))))
 
