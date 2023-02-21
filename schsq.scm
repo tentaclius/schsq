@@ -275,8 +275,12 @@
 (define *metro-seqs* (make-hash-table))
 (define *metro-running* #f)
 
-(define (metro-add name seq)
-  (hash-set! *metro-seqs* name seq))
+(define* (metro-add name seq #:optional quant)
+  (if quant
+    (schedule (beat->time (- (beat-quant quant) 1/2))
+              (λ() (hash-set! *metro-seqs* name seq))
+              (list))
+    (hash-set! *metro-seqs* name seq)))
 
 (define (metro-play beat)
   (when *metro-running*

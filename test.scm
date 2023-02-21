@@ -89,6 +89,25 @@
 
 ;;;
 
-(metro-add :solo (Sa (ht :fn synth-fn) A-5))
+(define play-midi
+  (λ(el attr)
+    (let ((at (hash-ref attr :start (now)))
+          (dr (hash-ref attr :note-len 1)))
+      (midi-note-on el
+                    :at (beat->time at)
+                    :duration (beat->time dr)))))
 
-(metro-add :test-fn (λ(bt) (writeln bt)))
+(metro-add :solo
+           (λ(beat)
+             (Sa (ht :fn play-midi :note-len 1/12)
+                 (if (even? beat)
+                   (S  D-3 F-3 G-3 A-3)
+                   (S  F-3 G-3 A-3 C-4)))))
+
+(metro-add :tick (Sa (ht :fn play-midi :dur 1/12)
+                     C-3))
+
+(metro-add :solo #f)
+
+(metro-add :tick #f)
+
