@@ -81,56 +81,14 @@
 
 ;;; }}}
 
-(define (looper tm) #t)
-
-;;;
 
 (midi-init "CL")
-
-(define (midi-handler event)
-  (writeln event))
-
-(call-with-new-thread
-  (lambda ()
-    (let loop ()
-      (midi-handler (midi-receive))
-      (loop))))
-
-(midi-note-on C-4)
-
-;;;;
-
-(midi-init "CL")
-
-(define (synth-fn e attr)
-  (midi-note-on e
-       :velo     (hash-ref attr :amp 127)
-       :at       (beat->time (hash-ref attr :start (beats)))
-       :duration (beat->time (hash-ref attr :dur 1))))
-
-(def play-list
-     (list ;(Sa (ht :dur 1/8 :amp 1 :fn synth-fn)
-           ;    D2 F2 Bb2 A2 C3 D3)
-           (Sa (ht :fn synth-fn :dur 0.9999999)
-               D5)
-           ))
-
-(define (scheduler beat)
-  (for-each (λ(pl)
-              (with-exception-handler
-                (λ(e) (writeln "ERROR: " e) #f)
-                (ev-schedule pl (ht :start beat))
-                #:unwind #t))
-            play-list)
-  (schedule (- (beat->time (1+ beat)) 1000) 'scheduler (list (1+ beat))))
-(schedule (- (beat->time (beat-quant 1)) 1000)
-          scheduler (list (beat-quant 1)))
-
-(define (scheduler beat) #f)
-
 (metro-start)
+
 (metro-stop)
 
 ;;;
 
-(metro-add :solo (Sa (ht :fn synth-fn)))
+(metro-add :solo (Sa (ht :fn synth-fn) A-5))
+
+(metro-add :test-fn (λ(bt) (writeln bt)))

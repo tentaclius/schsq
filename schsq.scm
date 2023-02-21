@@ -6,7 +6,8 @@
                          midi-init midi-receive midi-schedule-event midi-schedule-note
                          midi-note-on midi-note-off midi-send-ctrl make-midi-note
                          merge-attrs <events> <seq> <sim> ev-schedule S Sa Sl Sal U Ua Ul Ual A
-                         metro-add metro-start metro-stop
+                         metro-trigger metro-add metro-start metro-stop
+                         ;
                          C-0 C0   C-1  C1   C-2  C2   C-3  C3   C-4  C4    C-5 C5   C-6  C6   C-7  C7   C-8  C8   C-9  C9   
                          C#0 Db0  C#1  Db1  C#2  Db2  C#3  Db3  C#4  Db4   C#5 Db5  C#6  Db6  C#7  Db7  C#8  Db8  C#9  Db9 
                          D-0 D0   D-1  D1   D-2  D2   D-3  D3   D-4  D4    D-5 D5   D-6  D6   D-7  D7   D-8  D8   D-9  D9  
@@ -48,8 +49,7 @@
 
 (define (ht->str ht)
   (cat "{"
-       (string-join (hash-map->list (λ(key val) (cat key " " val)) ht)
-                    ", ")
+       (string-join (hash-map->list (λ(key val) (cat key " " val)) ht) ", ")
        "}"))
 
 (define-macro (def . vals)
@@ -280,18 +280,28 @@
 
 (define (metro-play beat)
   (when *metro-running*
-    (hash-for-each (λ(key value)
-                     (with-exception-handler
-                       (λ(e) (writeln "ERROR: " e) #f)
-                       (ev-schedule value (ht :start beat))
-                       #:unwind #t))
-                   *metro-seqs*)
-    (schedule (- (beat->time (1+ beat)) 1000) metro-play (list (1+ beat)))))
+    (metro-trigger beat)
+    (schedule (- (beat->time (1+ beat)) 1000)
+              metro-play (list (1+ beat)))))
+
+(define (metro-trigger beat)
+  (hash-for-each
+    (lambda (key value)
+      (with-exception-handler
+        (λ(e) (writeln "ERROR: " e) #f)
+        (λ() (if (procedure? value)
+                 (let ((ret (value beat)))
+                   (when (is-a? ret <events>)
+                     (ev-schedule ret (ht #:start beat))))
+                 (ev-schedule value (ht #:start beat))))
+        #:unwind? #t))
+    *metro-seqs*))
 
 (define (metro-start)
   (set! *metro-running* #t)
-  (schedule (- (beat->time (beat-quant 1)) 1000)
-            metro-play (list (beat-quant 1))))
+  (let ((b (beat-quant 1)))
+    (schedule (- (beat->time b) 1000)
+              metro-play (list b))))
 
 (define (metro-stop)
   (set! *metro-running* #f))
