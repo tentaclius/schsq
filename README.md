@@ -146,13 +146,8 @@ trigger a metro event manually (can be useful for synchronizing with an external
 
 # Current TODO List
 
-- [ ] MIDI SysEx
-- [ ] sequence speed
-- [ ] port to CL: metro
-- [ ] port `sc`, `euclidian` and `chord` from CL
-- [ ] osc-init
-- [ ] osc-send
-- [ ] osc-receive
+- [ ] OSC osc-recv message parsing
 - [ ] midi-send-sysex
 - [ ] cs-send-score
 - [ ] cs-send-instr
+- [ ] port to CL

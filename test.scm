@@ -7,19 +7,6 @@
 ;  A-3    _     _     A-1   _
 ;  B-3    _     _     _     A-1)
 
-(define (play-evt n tm dur)
-  (midi-note-on n #:at tm #:duration dur))
-
-(define (tracker channels . notes)
-  (let loop ((nts notes) (tm (+ (now) 200)))
-    (if (< (length nts) (vector-length channels))
-      (loop notes tm)
-      (for-each
-        (λ(n) (play-evt n tm (* 1 SEC)))
-        (list-head nts (vector-length channels))))
-    (schedule (+ (now) (* 1 SEC) -200) loop
-              (list (list-tail nts (vector-length channels)) (now+sec 1)))))
-
 ;;; Launchpad lightshow
 ;;; {{{
 
@@ -82,32 +69,126 @@
 ;;; }}}
 
 
-(midi-init "CL")
-(metro-start)
-
-(metro-stop)
-
 ;;;
 
+(add-to-load-path ".")
+(use-modules (schsq))
+(read-set! keywords 'prefix)
+;
+(midi-init "CL")
+(metro-start)
+;
 (define play-midi
   (λ(el attr)
-    (let ((at (hash-ref attr :start (now)))
-          (dr (hash-ref attr :note-len 1)))
+    (let ((at (hash-ref attr :start (beats)))
+          (dr (hash-ref attr :dur 1))
+          (nl (hash-ref attr :note-len 1)))
       (midi-note-on el
                     :at (beat->time at)
-                    :duration (beat->time dr)))))
+                    :duration (beat->time (* dr nl))))))
+;
+(sleep 1)
+;
+(metro-add
+  :bass
+  (λ(i)
+    (Sa (ht :fn play-midi)
+      (case (modulo i 8)
+        ((0) (S C-3 C-2 C-2))
+        ((1) (S C-3 C-3 C-2))
+        ((2) (S C-3 C-2 C-2))
+        ((3) (S C-3 C-3 C-2))
+        ((4) (S A#0 A#1 A#1))
+        ((5) (S A#0 A#2 A#1))
+        (else #f)
+        ))))
 
-(metro-add :solo
-           (λ(beat)
-             (Sa (ht :fn play-midi :note-len 1/12)
-                 (if (even? beat)
-                   (S  D-3 F-3 G-3 A-3)
-                   (S  F-3 G-3 A-3 C-4)))))
+((λ(i)
+    (Sa (ht :fn play-midi)
+      (case (modulo i 8)
+        ((0) (S C-3 C-2 C-2))
+        ((1) (S C-3 C-3 C-2))
+        ((2) (S C-3 C-2 C-2))
+        ((3) (S C-3 C-3 C-2))
+        ((4) (S A#0 A#1 A#1))
+        ((5) (S A#0 A#2 A#1))
+        ((6) (S F-3 F-2 F-3))
+        ((7) (S G-2 G-1 G-1))
+        ))) 1)
 
-(metro-add :tick (Sa (ht :fn play-midi :dur 1/12)
-                     C-3))
+(case (modulo 3 8)
+  ((0) (S C-3 C-2 C-2))
+  ((1) (S C-3 C-3 C-2))
+  ((2) (S C-3 C-2 C-2))
+  ((3) (S C-3 C-3 C-2))
+  ((4) (S A#0 A#1 A#1))
+  ((5) (S A#0 A#2 A#1))
+  ((6) (S F-3 F-2 F-3))
+  ((7) (S G-2 G-1 G-1))
+  )
+
+(metro-add :bass #f)
+
+(metro-add
+  :solo
+  (λ(i) 
+    (Sal (ht :note-len 1/4 :fn play-midi)
+         (per-beat
+           i
+           (chord #:c7 :root C-3 :shift 0 :scale *minor* :steps (random 7))
+           (chord #:sus4 :root C-3 :shift 0 :scale *minor* :steps (random 16))
+           (chord #:sus2 :root C-3 :shift 0 :scale *minor* :steps (random 7))
+           (chord #:c7sus4 :root C-3 :shift 0 :scale *minor* :steps (random 7))
+           (chord #:c7 :root C-3 :shift 4 :scale *minor* :steps (random 9))
+           (chord #:c7 :root C-3 :shift 5 :scale *minor* :steps (random 9))
+           (chord #:c7 :root C-3 :shift 2 :scale *minor* :steps (random 9))
+           (chord #:c7 :root C-3 :shift 3 :scale *minor* :steps (random 9))))))
+
+(chord #:c7 :root C-3 :shift 3 :scale *minor* :steps (random 9))
 
 (metro-add :solo #f)
 
-(metro-add :tick #f)
+(shuffle '(1 2 3 4))
 
+(rotate '(1 2 3 4) (random 7))
+
+(random-pick '(1 2 3 4))
+
+(let ((i -1) (ll '(1 2 3 4)))
+  (if (< i 0) (+ (length ll) i -1) i))
+
+
+(metro-add
+  :solo
+  (λ(i) 
+    (Sal (ht :fn play-midi :note-len 1/3)
+         (map (λ(n) (+ D-2 (sc *pentatonic* n)))
+              (list 0 1 (+ 2 (random 5)) 1 2 (if (odd? i) 4 5))))))
+
+(metro-add
+  :solo1
+  (λ(i) 
+    (Sal (ht :fn play-midi :note-len 1/3)
+         (map (λ(n) (+ D-2 (sc *pentatonic* (+ 5 n))))
+              (list 0 1 3 1 2 (if (odd? i) 4 5))))))
+
+(metro-add :solo #f)
+
+(metro-add :solo
+  (lambda (i)
+    (let* ((sq (euclidian 5 18 D-4 A-4))
+           (ln (length sq)))
+      (Sal (ht :fn play-midi :note-len 1/3)
+           (per-beat i
+                     (list-head sq (floor (/ ln 2)))
+                     (list-head (list-tail sq (floor (/ ln 2)))
+                                (floor (/ ln 2))))))))
+
+(metro-add :solo #f)
+
+;;;
+
+(osc-send "localhost" 20202 "/test" 
+          "hiiaaaaaaaaaaaaaaaaaaaaaaaaaaaa" #\space 1.1)
+
+(osc-recv 5555)

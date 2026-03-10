@@ -1,11 +1,13 @@
 (define-module (schsq)
                #:export (MIDI_NOTEON MIDI_NOTEOFF SEC
-                         cat writeln ht->str def ht nsec+sec now+sec
-                         sch-init sch-stop now schedule
-                         *bpm* time->beat beat->time beats beat-quant
+                         cat writeln ht->str def ht nsec+sec now+sec random-pick shuffle rotate
+                         sch-init sch-stop now schedule set-default-scheduler
+                         bpm time->beat beat->time beats beat-quant
                          midi-init midi-receive midi-schedule-event midi-schedule-note
                          midi-note-on midi-note-off midi-send-ctrl make-midi-note
-                         merge-attrs <events> <seq> <sim> ev-schedule S Sa Sl Sal U Ua Ul Ual A
+                         osc-send osc-recv
+                         merge-attrs <events> <seq> <sim> ev-schedule S Sa Sl Sal U Ua Ul Ual A seq-map
+                         euclidian sc *chromatic* *pentatonic* *major* *minor* chord per-beat
                          metro-trigger metro-add metro-start metro-stop
                          ;
                          C-0 C0   C-1  C1   C-2  C2   C-3  C3   C-4  C4    C-5 C5   C-6  C6   C-7  C7   C-8  C8   C-9  C9   
@@ -29,6 +31,7 @@
 (use-modules (ice-9 exceptions))
 (use-modules (ice-9 threads))
 (use-modules (rnrs bytevectors))
+(use-modules (ice-9 receive))
 
 (define lib-path "./schsq")
 
@@ -75,6 +78,22 @@
                  (list (inexact->exact (floor (/ tm SEC)))
                        (inexact->exact (modulo (floor tm) SEC)))))
 
+(define (random-pick ll)
+  (let* ((ind (random (length ll)))
+         (elm (list-tail ll ind)))
+    (values (car elm)
+            (append (list-head ll ind) (cdr elm)))))
+
+(define (shuffle ll)
+  (let loop ((p ll) (r '()))
+    (if (null? p) r
+      (receive (value rest) (random-pick p)
+               (loop rest (cons value r))))))
+
+(define (rotate ll i)
+  (let* ((len (length ll)) (ii (modulo (abs (if (< i 0) (+ len i) i)) len)))
+    (append (list-tail ll ii) (list-head ll ii))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; FFI
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -94,6 +113,8 @@
       (let ((tm (parse-c-struct (ff) (list long long))))
         (+ (* (car tm) SEC) (cadr tm))))))
 
+(define (set-default-scheduler sch) (set! *scheduler* sch))
+
 (define (now+sec . n)
   (+ (now) (* (apply + n) SEC)))
 
@@ -101,6 +122,7 @@
   (let ((ff (foreign-library-function lib-path "schedule_guile"
                                      #:return-type void  #:arg-types (list '* (list long long) '*))))
     (lambda* (tm proc param #:optional (sch *scheduler*))
+      (writeln sch)
       (ff sch
           (to-c-time tm)
           (procedure->pointer
@@ -116,23 +138,6 @@
                          param))
                 #:unwind? #t))
             (list))))))
-
-;;; Beats
-
-(define *bpm* 60)
-
-(define (time->beat tm)
-  (* *bpm* (/ tm 60 SEC)))
-
-(define (beat->time bt)
-  (* bt 60 SEC (/ *bpm*)))
-
-(define (beats)
-  (time->beat (now)))
-
-(define (beat-quant n)
-  (let ((b (ceiling (beats))))
-    (+ b (- n (modulo b n)))))
 
 ;;; MIDI
 
@@ -211,9 +216,96 @@
 (define* (make-midi-note #:optional (type MIDI_NOTEON) (note C-4) (velo 127) (chan 0))
   (u8-list->bytevector (list type 0 0 253 0 0 0 0 0 0 0 0 0 0 254 253 chan note velo 0 0 0 0 0 0 0 0 0)))
 
+;;; OSC
+
+(define osc-make-msg
+  (foreign-library-function lib-path "osc_create_message"
+                            #:return-type '*  #:arg-types (list)))
+
+(define osc-free-msg
+  (foreign-library-function lib-path "osc_free_message"
+                            #:arg-types (list '*)))
+
+(define osc-msg-add-int32
+  (foreign-library-function lib-path "osc_message_add_int32"
+                            #:arg-types (list '* int32)))
+
+(define osc-msg-add-int64
+  (foreign-library-function lib-path "osc_message_add_int64"
+                            #:arg-types (list '* int64)))
+
+(define osc-msg-add-char
+  (let ((ff (foreign-library-function lib-path "osc_message_add_char"
+                                      #:arg-types (list '* uint8))))
+    (lambda (msg val)
+      (ff msg (char->integer val)))))
+
+(define osc-msg-add-double
+  (foreign-library-function lib-path "osc_message_add_double"
+                            #:arg-types (list '* double)))
+
+(define osc-msg-add-str
+  (let ((ff (foreign-library-function lib-path "osc_message_add_string"
+                                      #:arg-types (list '* '*))))
+    (lambda (msg val)
+      (ff msg (string->pointer val)))))
+
+(define osc-send-msg
+  (let ((ff (foreign-library-function lib-path "osc_send_message"
+                                      #:arg-types (list '* '* '* '*))))
+    (lambda (msg host port path)
+      (ff msg (string->pointer host) (string->pointer port) (string->pointer path)))))
+
+(define (osc-send host port path . args)
+  (let ((msg (osc-make-msg)))
+    (for-each
+      (lambda (arg)
+        (cond
+          ((eqv? (class-of arg) <integer>)
+           (if (or (<= arg -2147483647) (>= arg 2147483647))
+             (osc-msg-add-int64 msg arg)
+             (osc-msg-add-int32 msg arg)))
+          ((eqv? (class-of arg) <real>)
+           (osc-msg-add-double msg arg))
+          ((eqv? (class-of arg) <string>)
+           (osc-msg-add-str msg arg))
+          ((eqv? (class-of arg) <char>)
+           (osc-msg-add-char msg arg))))
+      args)
+    (osc-send-msg msg host (cat port) path)
+    (osc-free-msg msg)))
+
+(define osc-recv
+  (foreign-library-function lib-path "osc_receive"
+                            #:return-type '* #:arg-types (list uint16)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; SEQUENCING ABSTRACTIONS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Beats
+
+(define *bpm* 60)
+
+(define* (bpm #:optional val)
+  (if val
+    (set! *bpm* val)
+    *bpm*))
+
+(define (time->beat tm)
+  (* *bpm* (/ tm 60 SEC)))
+
+(define (beat->time bt)
+  (* bt 60 SEC (/ *bpm*)))
+
+(define (beats)
+  (time->beat (now)))
+
+(define (beat-quant n)
+  (let ((b (ceiling (beats))))
+    (+ b (- n (modulo b n)))))
+
+;;;
 
 (define (merge-attrs . hn)
   (let ((result (make-hash-table)))
@@ -267,8 +359,62 @@
   (make <sim> #:events events #:attrib attrs))
 (define (Ual attrs events)
   (make <sim> #:events events #:attrib attrs))
-(define (A attrs . events)
-  (make <sim> #:events events #:attrib attrs))
+;(define (A attrs . events)
+;  (make <sim> #:events events #:attrib attrs))
+
+(define (seq-map fn sq)
+  (let ((ret (shallow-clone sq)))
+    (slot-set! ret 'events
+               (map (λ(el) (if (is-a? el <events>)
+                               (seq-map fn el)
+                               (fn el)))
+                    (slot-ref sq 'events)))
+    ret))
+
+(define* (euclidian n m snt #:optional (nl #f))
+  (let ((ii 0))
+    (map
+      (λ(i) (if (= (floor (* ii (/ m n))) i)
+                (let ((ret (if (procedure? snt) (snt) snt)))
+                  (set! ii (1+ ii))
+                  ret)
+                nl))
+      (iota (1- m)))))
+
+(define (sc scale step)
+  (when (list? scale)
+    (set! scale (list->vector scale)))
+  (if (list? step)
+    (map (λ(n) (sc scale n)) step)
+    (+ (vector-ref scale (modulo step (vector-length scale)))
+       (* 12 (floor (/ step (vector-length scale)))) )))
+
+(define *chromatic* #(0 1 2 3 4 5 6 7 8 9 10 11))
+(define *pentatonic* #(0 3 5 7 10))
+(define *major* #(0 2 4 5 7 9 11))
+(define *minor* #(0 2 3 5 7 8 10))
+
+(define* (chord mod #:key (shift 0) (root 0) (scale *chromatic*) steps)
+  (let ((ch (map
+              (λ(n) (+ root (sc scale (+ n shift))))
+              (case mod
+                ((#f #:c3)  (list 0 2 4))
+                ((#:c7)     (list 0 2 4 6))
+                ((#:c5)     (list 0 4 7))
+                ((#:sus4)   (list 0 2 3))
+                ((#:sus2)   (list 0 1 4))
+                ((#:sus9)   (list 0 4 8))
+                ((#:c7sus4)  (list 0 2 3 6))))))
+    (if steps
+      (sc ch (iota steps))
+      ch)))
+
+(define-macro (per-beat i . evs)
+   `(case (modulo ,i ,(length evs))
+      ,@(let loop ((j 0) (p evs) (result '()))
+          (if (null? p) result
+            (loop (1+ j) (cdr p)
+                  (cons (list (list j) (car p)) result))))))
 
 ;;; Metro
 
@@ -282,19 +428,20 @@
               (list))
     (hash-set! *metro-seqs* name seq)))
 
-(define (metro-play beat)
+(define (metro-play time i)
   (when *metro-running*
-    (metro-trigger beat)
-    (schedule (- (beat->time (1+ beat)) 1000)
-              metro-play (list (1+ beat)))))
+    (metro-trigger (time->beat time) i)
+    (let ((tm (+ time (beat->time 1))))
+      (schedule (- tm 1000)
+                metro-play (list tm (1+ i))))))
 
-(define (metro-trigger beat)
+(define (metro-trigger beat i)
   (hash-for-each
     (lambda (key value)
       (with-exception-handler
         (λ(e) (writeln "ERROR: " e) #f)
         (λ() (if (procedure? value)
-                 (let ((ret (value beat)))
+                 (let ((ret (value i)))
                    (when (is-a? ret <events>)
                      (ev-schedule ret (ht #:start beat))))
                  (ev-schedule value (ht #:start beat))))
@@ -303,9 +450,9 @@
 
 (define (metro-start)
   (set! *metro-running* #t)
-  (let ((b (beat-quant 1)))
-    (schedule (- (beat->time b) 1000)
-              metro-play (list b))))
+  (let ((b (beat->time (beat-quant 1))))
+    (schedule (- b 1000)
+              metro-play (list b 0))))
 
 (define (metro-stop)
   (set! *metro-running* #f))

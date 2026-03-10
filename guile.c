@@ -12,7 +12,7 @@ void execute_guile(void *arg)
       bInit = 0;
    }
 
-   guile_callback_t func  = (guile_callback_t) arg;
+   guile_callback_t func = (guile_callback_t) arg;
    func();
 }
 
