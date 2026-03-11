@@ -11,7 +11,7 @@ nchnls=2
 
 instr 1, Sin
   iAmp = p4
-  iFreq = p5
+  iFreq mtof p5
   iDur = p3
   ;
   kAmp linseg 0,.01,iAmp,.1,iAmp,.2,0
@@ -26,15 +26,9 @@ opcode nextbeat, i,0
   xout (iBeats + 1) * giBeatPeriod - iTime
 endop
 
-instr 3
-  scorelinei {{
-    i1 0 1 .8 880
-  }}
-endin
+#include "livecode.orc"
 
 </CsInstruments>
-<CsScore>
-i1 0 1 .8 440 
-i3 0 1
+<CsScore bin="guile cs-scores.scm">
 </CsScore>
 </CsoundSynthesizer>

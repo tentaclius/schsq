@@ -7,8 +7,10 @@
                          midi-note-on midi-note-off midi-send-ctrl make-midi-note
                          osc-send osc-recv
                          merge-attrs <events> <seq> <sim> ev-schedule S Sa Sl Sal U Ua Ul Ual A seq-map
-                         euclidian sc *chromatic* *pentatonic* *major* *minor* chord per-beat
+                         euclidian sc *chromatic* *pentatonic* *major* *minor* chord per-beat repeat-sequence
                          metro-trigger metro-add metro-start metro-stop
+                         cs-init cs-send cs-close cs-render-score cs-render-score-loop
+                         mtof
                          ;
                          C-0 C0   C-1  C1   C-2  C2   C-3  C3   C-4  C4    C-5 C5   C-6  C6   C-7  C7   C-8  C8   C-9  C9   
                          C#0 Db0  C#1  Db1  C#2  Db2  C#3  Db3  C#4  Db4   C#5 Db5  C#6  Db6  C#7  Db7  C#8  Db8  C#9  Db9 
@@ -32,6 +34,7 @@
 (use-modules (ice-9 threads))
 (use-modules (rnrs bytevectors))
 (use-modules (ice-9 receive))
+(use-modules (ice-9 iconv))
 
 (define lib-path "./schsq")
 
@@ -167,6 +170,24 @@
   A-5 81   A5  81      A-6 93   A6  93      A-7 105  A7  105     A-8 117  A8  117
   A#5 82   Bb5 82      A#6 94   Bb6 94      A#7 106  Bb7 106     A#8 118  Bb8 118
   B-5 83   B5  83      B-6 95   B6  95      B-7 107  B7  107     B-8 119  B8  119)
+
+
+(define midi-frequency-table
+  (vector 8.176 8.662 9.177 9.723 10.301 10.913 11.562 12.250 12.978 13.750 14.568 15.434
+          16.352 17.324 18.354 19.445 20.602 21.827 23.125 24.500 25.957 27.500 29.135 30.868
+          32.703 34.648 36.708 38.891 41.203 43.654 46.249 48.999 51.913 55.000 58.270 61.735
+          65.406 69.296 73.416 77.782 82.407 87.307 92.499 97.999 103.826 110.000 116.541 123.471
+          130.813 138.591 146.832 155.563 164.814 174.614 184.997 195.998 207.652 220.000 233.082
+          246.942 261.626 277.183 293.665 311.127 329.628 349.228 369.994 391.995 415.305 440.000
+          466.164 493.883 523.251 554.365 587.330 622.254 659.255 698.456 739.989 783.991 830.609
+          880.000 932.328 987.767 1046.502 1108.731 1174.659 1244.508 1318.510 1396.913 1479.978
+          1567.982 1661.219 1760.000 1864.655 1975.533 2093.005 2217.461 2349.318 2489.016 2637.020
+          2793.826 2959.955 3135.963 3322.438 3520.000 3729.310 3951.066 4186.009 4434.922
+          4698.636 4978.032 5274.041 5587.652 5919.911 6271.927 6644.875 7040.000 7458.620 7902.133
+          8372.018 8869.844 9397.273 9956.063 10548.080 11175.300 11839.820 12543.850))
+
+(define (mtof n)
+  (vector-ref midi-frequency-table n))
 
 (define midi-init
   (let ((ff (foreign-library-function lib-path "midi_init"
@@ -404,7 +425,7 @@
                 ((#:sus4)   (list 0 2 3))
                 ((#:sus2)   (list 0 1 4))
                 ((#:sus9)   (list 0 4 8))
-                ((#:c7sus4)  (list 0 2 3 6))))))
+                ((#:c7sus4) (list 0 2 3 6))))))
     (if steps
       (sc ch (iota steps))
       ch)))
@@ -415,6 +436,15 @@
           (if (null? p) result
             (loop (1+ j) (cdr p)
                   (cons (list (list j) (car p)) result))))))
+
+(define-method (repeat-sequence n (sequence <seq>))
+  (let loop ((n-events-left (* (length (events sequence)) n))
+             (ev-list (events sequence))
+             (accumulator (list)))
+    (cond
+      ((<= n-events-left 0) (make <seq> #:events (reverse accumulator) #:attrib (attrib sequence)))
+      ((null? ev-list) (loop n-events-left (events sequence) accumulator))
+      (#t (loop (1- n-events-left) (cdr ev-list) (cons (car ev-list) accumulator))))))
 
 ;;; Metro
 
@@ -456,3 +486,38 @@
 
 (define (metro-stop)
   (set! *metro-running* #f))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; CSOUND INTERACTION
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; UDP
+(define (cs-init port)
+  (vector
+    (socket PF_INET SOCK_DGRAM 0)
+    (make-socket-address PF_INET (inet-pton PF_INET "127.0.0.1") port)))
+
+(define (cs-send handle message)
+  (sendto (vector-ref handle 0) (string->bytevector message "utf8") (vector-ref handle 1)))
+
+(define (cs-close handle)
+  (close (vector-ref handle 0))
+  (vector-set! handle 0 #f))
+
+(define (cs-render-an-event event attr)
+  (when event
+    (let* ((trigger (if (procedure? event) (event attr) event))
+           (instr-number (if (list? trigger) (car trigger) trigger))
+           (instr-args   (if (list? trigger) (cdr trigger) '())))
+      (writeln
+        "i " (if (number? instr-number) instr-number (cat #\" instr-number #\"))
+        " " (exact->inexact (hash-ref attr #:start))
+        " " (exact->inexact (hash-ref attr #:dur))
+        " " (string-join (map cat instr-args))))))
+
+(define (cs-render-score start duration events)
+  (ev-schedule events (ht #:fn cs-render-an-event #:start start #:dur duration events)))
+
+(define (cs-render-score-loop start duration loop-until-time events)
+  (let ((loop-number (/ (- loop-until-time start) duration)))
+    (cs-render-score start (* duration loop-number) (repeat-sequence loop-number events))))

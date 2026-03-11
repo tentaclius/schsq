@@ -1,25 +1,26 @@
 (add-to-load-path ".")
 (use-modules (schsq))
 (read-set! keywords 'prefix)
-(use-modules (ice-9 iconv))
 
 (set-default-scheduler (sch-init))
 (schedule (now) (lambda() (writeln "hello")) (list))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; udp comm with cs
-(define (init-sc port)
-  (vector
-    (socket PF_INET SOCK_DGRAM 0)
-    (make-socket-address PF_INET (inet-pton PF_INET "127.0.0.1") port)))
 
-(def h (init-sc 1234))
-
-(define (sc-send handle message)
-  (sendto (vector-ref handle 0) (string->bytevector message "utf8") (vector-ref handle 1)))
-
-(sc-send h "hello")
+(def h (cs-init 1234))
+(cs-send h "hello")
+(cs-close h)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; misc
-(ev-schedule (Sa (ht :fn (λ(e attr) (writeln e ": " (ht->str attr)))) 1 2 3) (ht :start 0))
+
+(cs-render-score-loop
+  0 10 12
+  (S (list 1 0.8 440)
+     (U (list 2 0.4 220))
+     (Ua (ht :start 0) 5)
+     "Sin"))
+
+(repeat-sequence 3.1 (S 1 2 3 4))
+
