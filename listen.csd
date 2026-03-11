@@ -29,6 +29,6 @@ endop
 #include "livecode.orc"
 
 </CsInstruments>
-<CsScore bin="guile cs-scores.scm">
+<CsScore bin="guile cs-scores.scm my-score.scm">
 </CsScore>
 </CsoundSynthesizer>
