@@ -1,6 +1,6 @@
 <CsoundSynthesizer>
 <CsOptions>
--o dac --port=1234 -L stdin
+-o dac ;--port=1234 -L stdin
 </CsOptions>
 <CsInstruments>
 
@@ -11,7 +11,7 @@ nchnls=2
 
 instr 1, Sin
   iAmp = p4
-  iFreq mtof p5
+  iFreq = p5
   iDur = p3
   ;
   kAmp linseg 0,.01,iAmp,.1,iAmp,.2,0
@@ -19,16 +19,10 @@ instr 1, Sin
   outall aSig
 endin
 
-giBeatPeriod = 0.4
-opcode nextbeat, i,0
-  iTime times
-  iBeats = int(iTime / giBeatPeriod + 1e-9)
-  xout (iBeats + 1) * giBeatPeriod - iTime
-endop
-
 #include "livecode.orc"
 
 </CsInstruments>
-<CsScore>
+<CsScore bin="guile cs-scores.scm">
+(load "my-score.scm")
 </CsScore>
 </CsoundSynthesizer>
