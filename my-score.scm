@@ -1,9 +1,24 @@
-(define *bpm* 60)
+(use-modules (ice-9 hash-table))
 
-(define (beat->sec b)
-  (/ (* b 60) *bpm*))
+;; TODO:
+;; - make-i - create an instrument abstraction, provided a list of allowed keyword parameters and default values in i's order
 
 ;;;
+
+(define (render-i inst)
+  (string-join (cons "i" inst) " "))
+
+(define (make-i name . args) ; args is a list of (keyword-name default-value)
+  (lambda params
+    (let ((param-table (alist->hash-table params)))
+      (let loop ((p args) (result (list)))
+        (cond
+          ((null? p) result)
+          (#t (loop (cdr p)
+                    (cons
+                      (let ((pn (hash-ref param-table (car p))))
+                        (:w
+                          ))))))))))
 
 (define (choose-random . notes)
   (list-ref notes (random (length notes))))

@@ -9,7 +9,7 @@
                          merge-attrs <events> <seq> <sim> ev-schedule S Sa Sl Sal U Ua Ul Ual A seq-map
                          euclidian sc *chromatic* *pentatonic* *major* *minor* chord per-beat repeat-sequence
                          metro-trigger metro-add metro-start metro-stop
-                         cs-init cs-send cs-close cs-render-score cs-render-score-loop
+                         cs-init cs-send cs-close cs-render-score cs-render-score-loop beat
                          mtof
                          ;
                          C-0 C0   C-1  C1   C-2  C2   C-3  C3   C-4  C4    C-5 C5   C-6  C6   C-7  C7   C-8  C8   C-9  C9   
@@ -319,6 +319,9 @@
 (define (beat->time bt)
   (* bt 60 SEC (/ *bpm*)))
 
+(define (beat->sec b)
+  (/ (* b 60) *bpm*))
+
 (define (beats)
   (time->beat (now)))
 
@@ -521,3 +524,4 @@
 (define (cs-render-score-loop start duration loop-until-time events)
   (let ((loop-number (/ (- loop-until-time start) duration)))
     (cs-render-score start (* duration loop-number) (repeat-sequence loop-number events))))
+
