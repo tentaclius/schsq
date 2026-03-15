@@ -8,33 +8,19 @@
 (define (render-i inst)
   (string-join (cons "i" inst) " "))
 
-(define (make-i name . args) ; args is a list of (keyword-name default-value)
-  (lambda params
-    (let ((param-table (alist->hash-table params)))
-      (let loop ((p args) (result (list)))
-        (cond
-          ((null? p) result)
-          (#t (loop (cdr p)
-                    (cons
-                      (let ((pn (hash-ref param-table (car p))))
-                        (:w
-                          ))))))))))
+(def i1 (make-i 1 :gain 0.6 :freq 440))
+(i1 :freq 220 :gain 8)
 
 (define (choose-random . notes)
   (list-ref notes (random (length notes))))
 
-(define (n notenum)
-  (list "Bass" (mtof (- notenum 24)) 0.1))
-
-(define (bd . rest)
-  (list "BD" 440 0.9))
-
-(define (sn . rest)
-  (list "CHH" 440 0.9))
+(def b (make-i "Bass" :freq 440 :gain 0.9))
+(def bd (make-i "BD" :freq 440 :gain 0.9))
+(def sn (make-i "CHH" :freq 440 :gain 0.9))
 
 (cs-render-score-loop
   0 (beat->sec 1) (beat->sec 16)
-  (S (n D-4) (n F-4) (n G-4) (λ(attr) (n (choose-random A4 C5 D5)))))
+  (S (b D-4) (b F-4) (b G-4) (λ(attr) (b (choose-random A4 C5 D5)))))
 
 (cs-render-score-loop
   (beat->sec 4) (beat->sec 1) (beat->sec 16)

@@ -1,6 +1,6 @@
 (define-module (schsq)
                #:export (MIDI_NOTEON MIDI_NOTEOFF SEC
-                         cat writeln ht->str def ht nsec+sec now+sec random-pick shuffle rotate
+                         cat writeln ht->str def ht htl nsec+sec now+sec random-pick shuffle rotate
                          sch-init sch-stop now schedule set-default-scheduler
                          bpm time->beat beat->time beats beat-quant
                          midi-init midi-receive midi-schedule-event midi-schedule-note
@@ -9,8 +9,7 @@
                          merge-attrs <events> <seq> <sim> ev-schedule S Sa Sl Sal U Ua Ul Ual A seq-map
                          euclidian sc *chromatic* *pentatonic* *major* *minor* chord per-beat repeat-sequence
                          metro-trigger metro-add metro-start metro-stop
-                         cs-init cs-send cs-close cs-render-score cs-render-score-loop beat
-                         mtof
+                         cs-init cs-send cs-close cs-render-score cs-render-score-loop beat make-i mtof
                          ;
                          C-0 C0   C-1  C1   C-2  C2   C-3  C3   C-4  C4    C-5 C5   C-6  C6   C-7  C7   C-8  C8   C-9  C9   
                          C#0 Db0  C#1  Db1  C#2  Db2  C#3  Db3  C#4  Db4   C#5 Db5  C#6  Db6  C#7  Db7  C#8  Db8  C#9  Db9 
@@ -72,6 +71,15 @@
              ((or (null? p) (null? (cdr p))) result)
              (else (loop (cddr p) (cons `(hash-set! ,h ,(car p) ,(cadr p)) result)))))
        ,h)))
+
+(define (htl pairs)
+  (let ((h (make-hash-table)))
+    (let loop ((p pairs))
+      (cond
+        ((or (null? p) (null? (cdr p))) h)
+        (else (begin
+                (hash-set! h (car p) (cadr p))
+                (loop (cddr p))))))))
 
 (define (nsec+sec ns . s)
   (+ ns (* SEC (apply + s))))
@@ -447,7 +455,7 @@
     (cond
       ((<= n-events-left 0) (make <seq> #:events (reverse accumulator) #:attrib (attrib sequence)))
       ((null? ev-list) (loop n-events-left (events sequence) accumulator))
-      (#t (loop (1- n-events-left) (cdr ev-list) (cons (car ev-list) accumulator))))))
+      (else (loop (1- n-events-left) (cdr ev-list) (cons (car ev-list) accumulator))))))
 
 ;;; Metro
 
@@ -524,4 +532,12 @@
 (define (cs-render-score-loop start duration loop-until-time events)
   (let ((loop-number (/ (- loop-until-time start) duration)))
     (cs-render-score start (* duration loop-number) (repeat-sequence loop-number events))))
+
+(define (make-i name . args)
+  (lambda params
+    (let ((param-table (htl params)))
+      (let loop ((p args) (result (list)))
+        (cond
+          ((null? p) (cons name (reverse result)))
+          (else (loop (cddr p) (cons (hash-ref param-table (car p) (cadr p)) result))))))))
 
