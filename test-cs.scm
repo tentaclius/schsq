@@ -8,9 +8,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; udp comm with cs
 
-(def h (cs-init 1234))
-(cs-send h "hello")
-(cs-close h)
+(cs-init 1234)
+(cs-send "schedule 1,0,1,.9,440" "schedule 1,1,1,.9,220")
+(cs-close)
+
+(cs-send "&i \"Bass\" 0 1 110 0.2")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; misc
@@ -23,4 +25,3 @@
      "Sin"))
 
 (repeat-sequence 3.1 (S 1 2 3 4))
-

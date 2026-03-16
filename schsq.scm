@@ -9,7 +9,7 @@
                          merge-attrs <events> <seq> <sim> ev-schedule S Sa Sl Sal U Ua Ul Ual A seq-map
                          euclidian sc *chromatic* *pentatonic* *major* *minor* chord per-beat repeat-sequence
                          metro-trigger metro-add metro-start metro-stop
-                         cs-init cs-send cs-close cs-render-score cs-render-score-loop beat make-i mtof
+                         cs-init cs-send cs-close cs-render-score cs-render-score-loop beat make-i mtof beat->sec
                          ;
                          C-0 C0   C-1  C1   C-2  C2   C-3  C3   C-4  C4    C-5 C5   C-6  C6   C-7  C7   C-8  C8   C-9  C9   
                          C#0 Db0  C#1  Db1  C#2  Db2  C#3  Db3  C#4  Db4   C#5 Db5  C#6  Db6  C#7  Db7  C#8  Db8  C#9  Db9 
@@ -62,6 +62,9 @@
               (if (or (null? p) (null? (cdr p)))
                 (reverse defs)
                 (loop (cddr p) (cons `(define ,(car p) ,(cadr p)) defs))))))
+
+(define-macro (qq . words)
+  (string-join (map cat words)))
 
 (define-macro (ht . pairs)
   (let ((h (gensym)))
@@ -502,18 +505,23 @@
 ;;; CSOUND INTERACTION
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define *cs-handle* #f)
+
 ;; UDP
 (define (cs-init port)
-  (vector
-    (socket PF_INET SOCK_DGRAM 0)
-    (make-socket-address PF_INET (inet-pton PF_INET "127.0.0.1") port)))
+  (set! *cs-handle*
+    (vector
+      (socket PF_INET SOCK_DGRAM 0)
+      (make-socket-address PF_INET (inet-pton PF_INET "127.0.0.1") port))))
 
-(define (cs-send handle message)
-  (sendto (vector-ref handle 0) (string->bytevector message "utf8") (vector-ref handle 1)))
+(define (cs-send . messages)
+  (sendto (vector-ref *cs-handle* 0)
+          (string->bytevector (cat (string-join messages "\n") "\n") "utf8")
+          (vector-ref *cs-handle* 1)))
 
-(define (cs-close handle)
-  (close (vector-ref handle 0))
-  (vector-set! handle 0 #f))
+(define (cs-close)
+  (close (vector-ref *cs-handle* 0))
+  (vector-set! *cs-handle* 0 #f))
 
 (define (cs-render-an-event event attr)
   (when event
@@ -540,4 +548,3 @@
         (cond
           ((null? p) (cons name (reverse result)))
           (else (loop (cddr p) (cons (hash-ref param-table (car p) (cadr p)) result))))))))
-

@@ -2,6 +2,7 @@
 (use-modules (schsq))
 (use-modules (ice-9 eval-string))
 (use-modules (rnrs io ports))
+(read-set! keywords 'prefix)
 
 (with-output-to-file
   (list-ref (command-line) 2)

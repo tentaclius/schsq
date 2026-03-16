@@ -11,19 +11,20 @@ nchnls=2
 
 instr 1, Sin
   iAmp = p4
-  iFreq mtof p5
+  iFreq = p5
   iDur = p3
   ;
-  kAmp linseg 0,.01,iAmp,.1,iAmp,.2,0
-  aSig poscil kAmp,iFreq
+  aAmp linseg 0,.01,iAmp,.1,iAmp,.2,0,1,0
+  aSig poscil aAmp,iFreq
   outall aSig
 endin
 
-giBeatPeriod = 0.4
-opcode nextbeat, i,0
+giBPM = 120
+opcode nextbeat, i, 0
   iTime times
-  iBeats = int(iTime / giBeatPeriod + 1e-9)
-  xout (iBeats + 1) * giBeatPeriod - iTime
+  iBeatPeriod = 60 / giBPM
+  iBeats = int(iTime / iBeatPeriod + 1e-9)
+  xout (iBeats + 1) * iBeatPeriod - iTime
 endop
 
 #include "livecode.orc"
