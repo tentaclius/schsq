@@ -148,6 +148,8 @@ trigger a metro event manually (can be useful for synchronizing with an external
 
 - [ ] OSC osc-recv message parsing
 - [ ] midi-send-sysex
-- [ ] cs-send-score
-- [ ] cs-send-instr
-- [ ] port to CL
+- [x] cs-send-score
+- [x] cs-send-instr
+- [x] port to CL
+
+- [ ] Novation Launchpad sampler in C
