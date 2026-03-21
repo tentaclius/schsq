@@ -1,31 +1,20 @@
 <CsoundSynthesizer>
 <CsOptions>
--o dac --port=1234 -L stdin
+-o dac -+rtaudio=alsa -+rtmidi=alsaseq -Ma --port=1234 -L stdin
 </CsOptions>
 <CsInstruments>
 
-sr = 44100
+sr = 48000
 ksmps = 4
 0dbfs=1
 nchnls=2
 
-instr 1, Sin
-  iAmp = p4
-  iFreq = p5
-  iDur = p3
-  ;
-  aAmp linseg 0,.01,iAmp,.1,iAmp,.2,0,1,0
-  aSig poscil aAmp,iFreq
-  outall aSig
-endin
+massign 0, 1
 
-giBPM = 120
-opcode nextbeat, i, 0
-  iTime times
-  iBeatPeriod = 60 / giBPM
-  iBeats = int(iTime / iBeatPeriod + 1e-9)
-  xout (iBeats + 1) * iBeatPeriod - iTime
-endop
+instr 1
+  iNote notnum
+  print iNote
+endin
 
 #include "livecode.orc"
 

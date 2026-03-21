@@ -1,6 +1,6 @@
 (define-module (schsq)
                #:export (MIDI_NOTEON MIDI_NOTEOFF SEC
-                         cat writeln ht->str def ht htl nsec+sec now+sec random-pick shuffle rotate
+                         cat writeln ht->str def ht htl nsec+sec now+sec random-pick shuffle rotate register-here-string
                          sch-init sch-stop now schedule set-default-scheduler
                          bpm time->beat beat->time beats beat-quant
                          midi-init midi-receive midi-schedule-event midi-schedule-note
@@ -34,6 +34,8 @@
 (use-modules (rnrs bytevectors))
 (use-modules (ice-9 receive))
 (use-modules (ice-9 iconv))
+(use-modules (ice-9 rdelim))
+(use-modules (ice-9 textual-ports))
 
 (define lib-path "./schsq")
 
@@ -107,6 +109,21 @@
 (define (rotate ll i)
   (let* ((len (length ll)) (ii (modulo (abs (if (< i 0) (+ len i) i)) len)))
     (append (list-tail ll ii) (list-head ll ii))))
+
+(define (register-here-string delim)
+  (let ((delim-len (string-length delim)))
+    (read-hash-extend
+      #\/
+      (lambda (chr port)
+        (let loop ((lines '()))
+          (let* ((line (read-line port))
+                 (trimmed-line (string-trim line)))
+            (if (and (>= (string-length trimmed-line) delim-len)
+                     (string=? (substring trimmed-line 0 delim-len) delim))
+              (begin
+                (unget-string port (substring trimmed-line delim-len))
+                (string-join (reverse lines) "\n"))
+              (loop (cons line lines)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; FFI
