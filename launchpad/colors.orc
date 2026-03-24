@@ -6,38 +6,44 @@
 ;; 44 45 46 47 76 77 78 79
 ;; 40 41 42 43 72 73 74 75
 ;; 36 37 38 39 68 69 70 71
-noteon 1, 36, $COLOR_BLANK
-noteon 1, 37, $COLOR_BLANK
-noteon 1, 38, $COLOR_BLANK
-noteon 1, 39, $COLOR_BLANK
-noteon 1, 68, $COLOR_BLANK
-noteon 1, 69, $COLOR_BLANK
-noteon 1, 70, $COLOR_BLANK
-noteon 1, 71, $COLOR_BLANK
-noteon 1, 40, 22
-noteon 1, 41, 22
-noteon 1, 42, 22
-noteon 1, 43, 22
-noteon 1, 72, 23
-noteon 1, 73, 23
-noteon 1, 74, 23
-noteon 1, 75, 23
+
+#define COLOR_BLANK #0#
+#define PAD_L #22#
+#define PAD_R #27#
+#define INSTR #80#
+
+noteon 1, 36, $INSTR
+noteon 1, 37, $INSTR
+noteon 1, 38, $INSTR
+noteon 1, 39, $INSTR
+noteon 1, 68, $INSTR
+noteon 1, 69, $INSTR
+noteon 1, 70, $INSTR
+noteon 1, 71, $INSTR
+noteon 1, 40, $PAD_L
+noteon 1, 41, $PAD_L
+noteon 1, 42, $PAD_L
+noteon 1, 43, $PAD_L
+noteon 1, 72, $PAD_R
+noteon 1, 73, $PAD_R
+noteon 1, 74, $PAD_R
+noteon 1, 75, $PAD_R
 noteon 1, 44, $COLOR_BLANK
-noteon 1, 45, 22
-noteon 1, 46, 22
-noteon 1, 47, 22
-noteon 1, 76, 23
-noteon 1, 77, 23
-noteon 1, 78, 23
+noteon 1, 45, $PAD_L
+noteon 1, 46, $PAD_L
+noteon 1, 47, $PAD_L
+noteon 1, 76, $PAD_R
+noteon 1, 77, $PAD_R
+noteon 1, 78, $PAD_R
 noteon 1, 79, $COLOR_BLANK
-noteon 1, 48, 22
-noteon 1, 49, 22
-noteon 1, 50, 22
-noteon 1, 51, 22
-noteon 1, 80, 23
-noteon 1, 81, 23
-noteon 1, 82, 23
-noteon 1, 83, 23
+noteon 1, 48, $PAD_L
+noteon 1, 49, $PAD_L
+noteon 1, 50, $PAD_L
+noteon 1, 51, $PAD_L
+noteon 1, 80, $PAD_R
+noteon 1, 81, $PAD_R
+noteon 1, 82, $PAD_R
+noteon 1, 83, $PAD_R
 noteon 1, 52, $COLOR_BLANK
 noteon 1, 53, $COLOR_BLANK
 noteon 1, 54, $COLOR_BLANK

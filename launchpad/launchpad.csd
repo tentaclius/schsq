@@ -15,7 +15,16 @@ ksmps = 4
 nchnls=2
 
 ;; some decent instruments from livecode's lib by Steven Yi
-;#include "livecode.orc"
+#include "livecode.orc"
+
+;; helper opcode
+opcode def, i, ii
+  iVal, iDflt xin
+  if iVal == 0 then
+    iVal = iDflt
+  endif
+  xout iVal
+endop
 
 ;; load samples
 giKick2 ftgen 0,0,0,1,"s/kick2.wav",0,0,0
@@ -39,28 +48,28 @@ giSnare2 ftgen 0,0,0,1,"s/snare2.wav",0,0,0
 ;; 36 37 38 39 68 69 70 71
 
 ;; MIDI dispatcher
-#define COLOR_BLANK #0#
 giColor = 45
 massign 0, 1
 instr 1
   iNote notnum
   iVelo veloc
+  ; bass drums
   if iNote == 43 || iNote == 72 then
-    schedule 3,0,1,giKick,(iVelo/127),mtof(60)
+    schedule "Bd",0,1,.05125,1,110
   elseif iNote == 42 || iNote == 73 then
     schedule 3,0,1,giKick2,(iVelo/127),mtof(60)
   elseif iNote == 41 || iNote == 74 then
     schedule 3,0,1,giKick2,(iVelo/127),mtof(60-24)
   elseif iNote == 40 || iNote == 75 then
     schedule 3,0,1,giKick2,(iVelo/127),mtof(60+12)
-  ;
+  ; high hats
   elseif iNote == 47 || iNote == 76 then
-    schedule 3,0,1,giHh1,(iVelo/127),mtof(60)
+    schedule "Hh", 0, 1, .05, 1, 5000
   elseif iNote == 46 || iNote == 77 then
-    schedule 3,0,1,giHh2,(iVelo/127),mtof(60)
+    schedule 3,0,1,giHh1,(iVelo/127),mtof(60)
   elseif iNote == 45 || iNote == 78 then
     schedule 3,0,1,giHh2,(iVelo/127),mtof(60-24)
-  ;
+  ; cymbals
   elseif iNote == 51 || iNote == 80 then
     schedule 3,0,1,giSnare1,(iVelo/127),mtof(60)
   elseif iNote == 50 || iNote == 81 then
@@ -69,6 +78,23 @@ instr 1
     schedule 3,0,1,giHhRim,(iVelo/127),mtof(60)
   elseif iNote == 48 || iNote == 83 then
     schedule 3,0,1,giHhLong,(iVelo/127),mtof(60)
+  ; pads
+  elseif iNote == 36 then
+    schedule "PadsR", 0, 3, 0.6, ntom("2A")
+  elseif iNote == 37 then
+    schedule "PadsR", 0, 3, 0.6, ntom("3C")
+  elseif iNote == 38 then
+    schedule "PadsR", 0, 3, 0.6, ntom("3D")
+  elseif iNote == 39 then
+    schedule "PadsR", 0, 3, 0.6, ntom("3E")
+  elseif iNote == 68 then
+    schedule "PadsR", 0, 3, 0.6, ntom("3G")
+  elseif iNote == 69 then
+    schedule "PadsR", 0, 3, 0.6, ntom("3A")
+  elseif iNote == 70 then
+    schedule "PadsR", 0, 3, 0.6, ntom("4C")
+  elseif iNote == 71 then
+    schedule "PadsR", 0, 3, 0.6, ntom("4D")
   endif
 endin
 
@@ -87,10 +113,60 @@ instr 3
   outall aSig
 endin
 
+instr Bd
+  iGain def p5, 1
+  iFreq def p6, 330
+  iDur def p4, 0.1
+  ;
+  kEnv linseg iGain, iDur*3, 0
+  kFreq linseg iFreq, iDur, 10
+  aSig poscil 1, kFreq
+  ;
+  aBass poscil 0.7 * iGain, 60
+  ;
+  aSig = (aSig + aBass) * kEnv
+  outall aSig
+endin
+
+instr Hh
+  iGain def p5, 1
+  iFreq def p6, 3000
+  iDur def p4, 0.2
+  ;
+  kEnv linseg 0, 0.005, iGain, iDur, 0
+  aSig noise kEnv, 0
+  aSig mvchpf aSig, iFreq, 0.9
+  ;
+  outall aSig
+endin
+
+instr Pads
+  iDur = p3
+  iGain def p4, 1
+  iNote def p5, 60
+  ;
+  aSig poscil 1/2, mtof(iNote)
+  aSig += poscil(1/4, mtof(iNote + 7)-1)
+  aSig += poscil(1/7, mtof(iNote + 12)+1)
+  aSig += poscil(1/20, mtof(iNote + 31))
+  aSig *= linseg(0, 0.1, iGain, iDur-1, iGain, 0.3, 0)
+  ;
+  aSigL, aSigR freeverb aSig, aSig, 0.75, 0.3
+  kEnv madsr 0.05, 0.1, 0.8, 0.2
+  out aSigL*kEnv, aSigR*kEnv
+endin
+
+instr PadsR
+  iDur = p3
+  iGain def p4, 1/2
+  iNote def p5, 60
+  turnoff2 "Pads", 0, 1
+  schedule "Pads", 0.001, iDur, iGain, iNote
+  turnoff
+endin
+
 </CsInstruments>
 <CsScore>
-;f101 0 0 1 "kick1.wav" 0 0 0
-;i3 0 1 101 1 120
 i2 0 1
 </CsScore>
 </CsoundSynthesizer>
