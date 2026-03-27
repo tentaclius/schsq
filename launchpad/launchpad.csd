@@ -18,7 +18,7 @@ nchnls=2
 #include "livecode.orc"
 
 ;; helper opcode
-opcode def, i, ii
+opcode def, i, ii  ;; set a value, use default value in case of 0
   iVal, iDflt xin
   if iVal == 0 then
     iVal = iDflt
@@ -46,6 +46,39 @@ giSnare2 ftgen 0,0,0,1,"s/snare2.wav",0,0,0
 ;; 44 45 46 47 76 77 78 79
 ;; 40 41 42 43 72 73 74 75
 ;; 36 37 38 39 68 69 70 71
+
+#define COLOR_BLANK #0#
+#define PAD_L #22#
+#define PAD_R #27#
+#define INSTR #80#
+
+#define MIDI_COLOR #0#
+#define MIDI_INSTR #1#
+#define MIDI_DUR #2#
+#define MIDI_GAIN #3#
+#define MIDI_FREQ #4#
+#define MIDI_SAMPLE #5#
+
+giMidiMap[][] init 100, 6
+;; color, instr, dur, gain, freq, sample
+giMidiMap setrow fillarray(PAD_L, nstrnum("Bd"), 1, .5, 110, 0), 43
+giMidiMap setrow fillarray(PAD_R, nstrnum("Bd"), 1, .5, 110, 0), 72
+giMidiMap setrow fillarray(PAD_L, 3, 1, 0, mtof(60), giKick2), 42
+giMidiMap setrow fillarray(PAD_R, 3, 1, 0, mtof(60), giKick2), 73
+giMidiMap setrow fillarray(PAD_L, 3, 1, 0, mtof(36), giKick2), 41
+giMidiMap setrow fillarray(PAD_R, 3, 1, 0, mtof(36), giKick2), 74
+giMidiMap setrow fillarray(PAD_L, nstrnum("Hh"), .05, 1, 5000, 0), 47
+giMidiMap setrow fillarray(PAD_R, nstrnum("Hh"), .05, 1, 5000, 0), 76
+
+instr 101 ;; will replace instr 1
+  iNote notnum
+  iVelo veloc
+  if giMidiMap[iNote][MIDI_INSTR] > 0 then
+    iGain def giMidiMap[iNote][MIDI_GAIN], iVelo/127
+    iFreq def giMidiMap[iNote][MIDI_FREQ], mtof(iNote)
+    schedule giMidiMap[iNote][MIDI_INSTR], 0, giMidiMap[iNote][MIDI_DUR], iGain, iFreq, giMidiMap[iNote][MIDI_SAMPLE]
+  endif
+endin
 
 ;; MIDI dispatcher
 giColor = 45
@@ -103,6 +136,12 @@ instr 2
 #include "colors.orc"
 endin
 
+instr 102 ;; will replace instr 2
+  for iColor, iIndex in getcol(giMidiMap, 0) do
+    noteon 1, iIndex, iColor
+  od
+endin
+
 ;; play a sample
 instr 3
   iTable = p4
@@ -129,9 +168,9 @@ instr Bd
 endin
 
 instr Hh
-  iGain def p5, 1
-  iFreq def p6, 3000
-  iDur def p4, 0.2
+  iDur = p3
+  iGain def p4, 1
+  iFreq def p5, 3000
   ;
   kEnv linseg 0, 0.005, iGain, iDur, 0
   aSig noise kEnv, 0
