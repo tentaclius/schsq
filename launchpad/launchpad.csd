@@ -52,6 +52,7 @@ giSnare2 ftgen 0,0,0,1,"s/snare2.wav",0,0,0
 #define PAD_L #22#
 #define PAD_R #27#
 #define INSTR #80#
+#define COLOR_SYS #5#
 
 ;; midi mapping structure
 #define MIDI_COLOR #0#
@@ -61,15 +62,17 @@ giSnare2 ftgen 0,0,0,1,"s/snare2.wav",0,0,0
 #define MIDI_FREQ #4#
 #define MIDI_SAMPLE #5#
 
-giMidiMap[][] init 100, 6  ;; color, instr, dur, gain, freq, sample
+giMidiMap[][] init 100, 6  ;; color, instr, dur, gain, freq, sample/parameter
 opcode LaunchpadMap, 0, iiSiiii
   iNote, iColor, SInstr, iDur, iGain, iFreq, iSample xin
   giMidiMap setrow fillarray(iColor, nstrnum(SInstr), iDur, iGain, iFreq, iSample), iNote
 endop
 
+;; system
+LaunchpadMap 99, $COLOR_SYS, "RefreshColors", 0.1, 1, 1, 0
 ;; drums
-LaunchpadMap 43, $PAD_L, "Bd", 1, .5, 110, 0
-LaunchpadMap 72, $PAD_R, "Bd", 1, .5, 110, 0
+LaunchpadMap 43, $PAD_L, "Bd", 1, .5, 110, 0.1
+LaunchpadMap 72, $PAD_R, "Bd", 1, .5, 110, 0.1
 LaunchpadMap 42, $PAD_L, "Sample", 1, 0, mtof(60), giKick2
 LaunchpadMap 73, $PAD_R, "Sample", 1, 0, mtof(60), giKick2
 LaunchpadMap 41, $PAD_L, "Sample", 1, 0, mtof(36), giKick2
@@ -77,8 +80,8 @@ LaunchpadMap 74, $PAD_R, "Sample", 1, 0, mtof(36), giKick2
 LaunchpadMap 40, $PAD_L, "Sample", 1, 0, mtof(72), giKick2
 LaunchpadMap 75, $PAD_R, "Sample", 1, 0, mtof(72), giKick2
 ;; hats
-LaunchpadMap 47, $PAD_L, "Hh", .05, 1, 5000, 0
-LaunchpadMap 76, $PAD_R, "Hh", .05, 1, 5000, 0
+LaunchpadMap 47, $PAD_L, "Hh", 1, 1, 5000, 0.1
+LaunchpadMap 76, $PAD_R, "Hh", 1, 1, 5000, 0.1
 LaunchpadMap 46, $PAD_L, "Sample", 1, 0, mtof(60), giHh1
 LaunchpadMap 77, $PAD_R, "Sample", 1, 0, mtof(60), giHh1
 LaunchpadMap 45, $PAD_L, "Sample", 1, 0, mtof(36), giHh2
@@ -95,21 +98,21 @@ LaunchpadMap 83, $PAD_R, "Sample", 1, 0, mtof(60), giHhLong
 ;; pads
 LaunchpadMap 36, $INSTR, "PadsR", 3, 0.6, ntom("2A"), 0
 LaunchpadMap 37, $INSTR, "PadsR", 3, 0.6, ntom("3C"), 0
-LaunchpadMap 38, $INSTR, "PadsR", 0, 3, 0.6, ntom("3D"), 0
-LaunchpadMap 39, $INSTR, "PadsR", 0, 3, 0.6, ntom("3E"), 0
-LaunchpadMap 68, $INSTR, "PadsR", 0, 3, 0.6, ntom("3G"), 0
-LaunchpadMap 69, $INSTR, "PadsR", 0, 3, 0.6, ntom("3A"), 0
-LaunchpadMap 70, $INSTR, "PadsR", 0, 3, 0.6, ntom("4C"), 0
-LaunchpadMap 71, $INSTR, "PadsR", 0, 3, 0.6, ntom("4D"), 0
+LaunchpadMap 38, $INSTR, "PadsR", 3, 0.6, ntom("3D"), 0
+LaunchpadMap 39, $INSTR, "PadsR", 3, 0.6, ntom("3E"), 0
+LaunchpadMap 68, $INSTR, "PadsR", 3, 0.6, ntom("3G"), 0
+LaunchpadMap 69, $INSTR, "PadsR", 3, 0.6, ntom("3A"), 0
+LaunchpadMap 70, $INSTR, "PadsR", 3, 0.6, ntom("4C"), 0
+LaunchpadMap 71, $INSTR, "PadsR", 3, 0.6, ntom("4D"), 0
 
-massign 0, "MidiMap"
-instr MidiMap ;; will replace instr 1
+massign 0, "MidiHandler"
+instr MidiHandler
   iNote notnum
   iVelo veloc
   if giMidiMap[iNote][$MIDI_INSTR] > 0 then
     iGain def giMidiMap[iNote][$MIDI_GAIN], iVelo/127
     iFreq def giMidiMap[iNote][$MIDI_FREQ], mtof(iNote)
-    schedule giMidiMap[iNote][M$IDI_INSTR], 0, giMidiMap[iNote][$MIDI_DUR], iGain, iFreq, giMidiMap[iNote][$MIDI_SAMPLE]
+    schedule giMidiMap[iNote][$MIDI_INSTR], 0, giMidiMap[iNote][$MIDI_DUR], iGain, iFreq, giMidiMap[iNote][$MIDI_SAMPLE]
   endif
 endin
 
@@ -165,7 +168,7 @@ endin
 ;; light up Launchpad keys
 instr RefreshColors
   for iColor, iIndex in getcol(giMidiMap, 0) do
-    noteon 1, iIndex, iColor
+    noteon 1, iIndex+36, iColor
   od
 endin
 
@@ -180,9 +183,9 @@ instr Sample
 endin
 
 instr Bd
-  iGain def p5, 1
-  iFreq def p6, 330
-  iDur def p4, 0.1
+  iGain def p4, 1
+  iFreq def p5, 330
+  iDur def p6, 0.1
   ;
   kEnv linseg iGain, iDur*3, 0
   kFreq linseg iFreq, iDur, 10
@@ -195,9 +198,9 @@ instr Bd
 endin
 
 instr Hh
-  iDur = p3
   iGain def p4, 1
   iFreq def p5, 3000
+  iDur def p6, 0.1
   ;
   kEnv linseg 0, 0.005, iGain, iDur, 0
   aSig noise kEnv, 0
