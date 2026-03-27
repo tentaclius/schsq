@@ -18,7 +18,7 @@ nchnls=2
 #include "livecode.orc"
 
 ;; helper opcode
-opcode def, i, ii  ;; set a value, use default value in case of 0
+opcode def, i, ii  ;; set a value or use the default value in case of 0
   iVal, iDflt xin
   if iVal == 0 then
     iVal = iDflt
@@ -47,11 +47,13 @@ giSnare2 ftgen 0,0,0,1,"s/snare2.wav",0,0,0
 ;; 40 41 42 43 72 73 74 75
 ;; 36 37 38 39 68 69 70 71
 
+;; colors we are going to use
 #define COLOR_BLANK #0#
 #define PAD_L #22#
 #define PAD_R #27#
 #define INSTR #80#
 
+;; midi map structure
 #define MIDI_COLOR #0#
 #define MIDI_INSTR #1#
 #define MIDI_DUR #2#
@@ -59,24 +61,62 @@ giSnare2 ftgen 0,0,0,1,"s/snare2.wav",0,0,0
 #define MIDI_FREQ #4#
 #define MIDI_SAMPLE #5#
 
-giMidiMap[][] init 100, 6
-;; color, instr, dur, gain, freq, sample
-giMidiMap setrow fillarray(PAD_L, nstrnum("Bd"), 1, .5, 110, 0), 43
-giMidiMap setrow fillarray(PAD_R, nstrnum("Bd"), 1, .5, 110, 0), 72
-giMidiMap setrow fillarray(PAD_L, 3, 1, 0, mtof(60), giKick2), 42
-giMidiMap setrow fillarray(PAD_R, 3, 1, 0, mtof(60), giKick2), 73
-giMidiMap setrow fillarray(PAD_L, 3, 1, 0, mtof(36), giKick2), 41
-giMidiMap setrow fillarray(PAD_R, 3, 1, 0, mtof(36), giKick2), 74
-giMidiMap setrow fillarray(PAD_L, nstrnum("Hh"), .05, 1, 5000, 0), 47
-giMidiMap setrow fillarray(PAD_R, nstrnum("Hh"), .05, 1, 5000, 0), 76
 
-instr 101 ;; will replace instr 1
+giMidiMap[][] init 100, 6  ;; color, instr, dur, gain, freq, sample
+opcode LaunchpadMap, 0, iiSiiii
+  iNote, iColor, SInstr, iDur, iGain, iFreq, iSample xin
+  giMidiMap setrow fillarray(iColor, nstrnum(SInstr), iDur, iGain, iFreq, iSample), iNote
+endop
+
+;; drums
+LaunchpadMap 43, $PAD_L, "Bd", 1, .5, 110, 0
+LaunchpadMap 72, $PAD_R, "Bd", 1, .5, 110, 0
+LaunchpadMap 42, $PAD_L, "Sample", 1, 0, mtof(60), giKick2
+LaunchpadMap 73, $PAD_R, "Sample", 1, 0, mtof(60), giKick2
+
+giMidiMap setrow fillarray($PAD_L, nstrnum("Sample"), 1, 0, mtof(36), giKick2), 41
+giMidiMap setrow fillarray($PAD_R, nstrnum("Sample"), 1, 0, mtof(36), giKick2), 74
+giMidiMap setrow fillarray($PAD_L, nstrnum("Sample"), 1, 0, mtof(72), giKick2), 40
+giMidiMap setrow fillarray($PAD_R, nstrnum("Sample"), 1, 0, mtof(72), giKick2), 75
+;; hats
+giMidiMap setrow fillarray($PAD_L, nstrnum("Hh"), .05, 1, 5000, 0), 47
+giMidiMap setrow fillarray($PAD_R, nstrnum("Hh"), .05, 1, 5000, 0), 76
+giMidiMap setrow fillarray($PAD_L, nstrnum("Sample"), 1, 0, mtof(60), giHh1), 46
+giMidiMap setrow fillarray($PAD_R, nstrnum("Sample"), 1, 0, mtof(60), giHh1), 77
+giMidiMap setrow fillarray($PAD_L, nstrnum("Sample"), 1, 0, mtof(36), giHh2), 45
+giMidiMap setrow fillarray($PAD_R, nstrnum("Sample"), 1, 0, mtof(36), giHh2), 78
+;; cymbals
+giMidiMap setrow fillarray($PAD_L, nstrnum("Sample"), 1, 0, mtof(60), giSnare1), 51
+giMidiMap setrow fillarray($PAD_R, nstrnum("Sample"), 1, 0, mtof(60), giSnare1), 80
+giMidiMap setrow fillarray($PAD_L, nstrnum("Sample"), 1, 0, mtof(60), giSnare2), 50
+giMidiMap setrow fillarray($PAD_R, nstrnum("Sample"), 1, 0, mtof(60), giSnare2), 81
+giMidiMap setrow fillarray($PAD_L, nstrnum("Sample"), 1, 0, mtof(60), giHhRim), 49
+giMidiMap setrow fillarray($PAD_R, nstrnum("Sample"), 1, 0, mtof(60), giHhRim), 82
+giMidiMap setrow fillarray($PAD_L, nstrnum("Sample"), 1, 0, mtof(60), giHhLong), 48
+giMidiMap setrow fillarray($PAD_R, nstrnum("Sample"), 1, 0, mtof(60), giHhLong), 83
+;; pads
+giMidiMap setrow fillarray($INSTR, nstrnum("PadsR"), 3, 0.6, ntom("2A"), 0), 36
+giMidiMap setrow fillarray($INSTR, nstrnum("PadsR"), 3, 0.6, ntom("3D"), 0), 37
+  elseif iNote == 38 then
+    schedule "PadsR", 0, 3, 0.6, ntom("3D")
+  elseif iNote == 39 then
+    schedule "PadsR", 0, 3, 0.6, ntom("3E")
+  elseif iNote == 68 then
+    schedule "PadsR", 0, 3, 0.6, ntom("3G")
+  elseif iNote == 69 then
+    schedule "PadsR", 0, 3, 0.6, ntom("3A")
+  elseif iNote == 70 then
+    schedule "PadsR", 0, 3, 0.6, ntom("4C")
+  elseif iNote == 71 then
+    schedule "PadsR", 0, 3, 0.6, ntom("4D")
+
+instr MidiMap ;; will replace instr 1
   iNote notnum
   iVelo veloc
-  if giMidiMap[iNote][MIDI_INSTR] > 0 then
-    iGain def giMidiMap[iNote][MIDI_GAIN], iVelo/127
-    iFreq def giMidiMap[iNote][MIDI_FREQ], mtof(iNote)
-    schedule giMidiMap[iNote][MIDI_INSTR], 0, giMidiMap[iNote][MIDI_DUR], iGain, iFreq, giMidiMap[iNote][MIDI_SAMPLE]
+  if giMidiMap[iNote][$MIDI_INSTR] > 0 then
+    iGain def giMidiMap[iNote][$MIDI_GAIN], iVelo/127
+    iFreq def giMidiMap[iNote][$MIDI_FREQ], mtof(iNote)
+    schedule giMidiMap[iNote][M$IDI_INSTR], 0, giMidiMap[iNote][$MIDI_DUR], iGain, iFreq, giMidiMap[iNote][$MIDI_SAMPLE]
   endif
 endin
 
@@ -136,14 +176,14 @@ instr 2
 #include "colors.orc"
 endin
 
-instr 102 ;; will replace instr 2
+instr RefreshColors ;; will replace instr 2
   for iColor, iIndex in getcol(giMidiMap, 0) do
     noteon 1, iIndex, iColor
   od
 endin
 
 ;; play a sample
-instr 3
+instr Sample
   iTable = p4
   iGain = p5
   iFreq = p6
