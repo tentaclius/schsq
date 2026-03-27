@@ -53,14 +53,13 @@ giSnare2 ftgen 0,0,0,1,"s/snare2.wav",0,0,0
 #define PAD_R #27#
 #define INSTR #80#
 
-;; midi map structure
+;; midi mapping structure
 #define MIDI_COLOR #0#
 #define MIDI_INSTR #1#
 #define MIDI_DUR #2#
 #define MIDI_GAIN #3#
 #define MIDI_FREQ #4#
 #define MIDI_SAMPLE #5#
-
 
 giMidiMap[][] init 100, 6  ;; color, instr, dur, gain, freq, sample
 opcode LaunchpadMap, 0, iiSiiii
@@ -73,43 +72,37 @@ LaunchpadMap 43, $PAD_L, "Bd", 1, .5, 110, 0
 LaunchpadMap 72, $PAD_R, "Bd", 1, .5, 110, 0
 LaunchpadMap 42, $PAD_L, "Sample", 1, 0, mtof(60), giKick2
 LaunchpadMap 73, $PAD_R, "Sample", 1, 0, mtof(60), giKick2
-
-giMidiMap setrow fillarray($PAD_L, nstrnum("Sample"), 1, 0, mtof(36), giKick2), 41
-giMidiMap setrow fillarray($PAD_R, nstrnum("Sample"), 1, 0, mtof(36), giKick2), 74
-giMidiMap setrow fillarray($PAD_L, nstrnum("Sample"), 1, 0, mtof(72), giKick2), 40
-giMidiMap setrow fillarray($PAD_R, nstrnum("Sample"), 1, 0, mtof(72), giKick2), 75
+LaunchpadMap 41, $PAD_L, "Sample", 1, 0, mtof(36), giKick2
+LaunchpadMap 74, $PAD_R, "Sample", 1, 0, mtof(36), giKick2
+LaunchpadMap 40, $PAD_L, "Sample", 1, 0, mtof(72), giKick2
+LaunchpadMap 75, $PAD_R, "Sample", 1, 0, mtof(72), giKick2
 ;; hats
-giMidiMap setrow fillarray($PAD_L, nstrnum("Hh"), .05, 1, 5000, 0), 47
-giMidiMap setrow fillarray($PAD_R, nstrnum("Hh"), .05, 1, 5000, 0), 76
-giMidiMap setrow fillarray($PAD_L, nstrnum("Sample"), 1, 0, mtof(60), giHh1), 46
-giMidiMap setrow fillarray($PAD_R, nstrnum("Sample"), 1, 0, mtof(60), giHh1), 77
-giMidiMap setrow fillarray($PAD_L, nstrnum("Sample"), 1, 0, mtof(36), giHh2), 45
-giMidiMap setrow fillarray($PAD_R, nstrnum("Sample"), 1, 0, mtof(36), giHh2), 78
+LaunchpadMap 47, $PAD_L, "Hh", .05, 1, 5000, 0
+LaunchpadMap 76, $PAD_R, "Hh", .05, 1, 5000, 0
+LaunchpadMap 46, $PAD_L, "Sample", 1, 0, mtof(60), giHh1
+LaunchpadMap 77, $PAD_R, "Sample", 1, 0, mtof(60), giHh1
+LaunchpadMap 45, $PAD_L, "Sample", 1, 0, mtof(36), giHh2
+LaunchpadMap 78, $PAD_R, "Sample", 1, 0, mtof(36), giHh2
 ;; cymbals
-giMidiMap setrow fillarray($PAD_L, nstrnum("Sample"), 1, 0, mtof(60), giSnare1), 51
-giMidiMap setrow fillarray($PAD_R, nstrnum("Sample"), 1, 0, mtof(60), giSnare1), 80
-giMidiMap setrow fillarray($PAD_L, nstrnum("Sample"), 1, 0, mtof(60), giSnare2), 50
-giMidiMap setrow fillarray($PAD_R, nstrnum("Sample"), 1, 0, mtof(60), giSnare2), 81
-giMidiMap setrow fillarray($PAD_L, nstrnum("Sample"), 1, 0, mtof(60), giHhRim), 49
-giMidiMap setrow fillarray($PAD_R, nstrnum("Sample"), 1, 0, mtof(60), giHhRim), 82
-giMidiMap setrow fillarray($PAD_L, nstrnum("Sample"), 1, 0, mtof(60), giHhLong), 48
-giMidiMap setrow fillarray($PAD_R, nstrnum("Sample"), 1, 0, mtof(60), giHhLong), 83
+LaunchpadMap 51, $PAD_L, "Sample", 1, 0, mtof(60), giSnare1
+LaunchpadMap 80, $PAD_R, "Sample", 1, 0, mtof(60), giSnare1
+LaunchpadMap 50, $PAD_L, "Sample", 1, 0, mtof(60), giSnare2
+LaunchpadMap 81, $PAD_R, "Sample", 1, 0, mtof(60), giSnare2
+LaunchpadMap 49, $PAD_L, "Sample", 1, 0, mtof(60), giHhRim
+LaunchpadMap 82, $PAD_R, "Sample", 1, 0, mtof(60), giHhRim
+LaunchpadMap 48, $PAD_L, "Sample", 1, 0, mtof(60), giHhLong
+LaunchpadMap 83, $PAD_R, "Sample", 1, 0, mtof(60), giHhLong
 ;; pads
-giMidiMap setrow fillarray($INSTR, nstrnum("PadsR"), 3, 0.6, ntom("2A"), 0), 36
-giMidiMap setrow fillarray($INSTR, nstrnum("PadsR"), 3, 0.6, ntom("3D"), 0), 37
-  elseif iNote == 38 then
-    schedule "PadsR", 0, 3, 0.6, ntom("3D")
-  elseif iNote == 39 then
-    schedule "PadsR", 0, 3, 0.6, ntom("3E")
-  elseif iNote == 68 then
-    schedule "PadsR", 0, 3, 0.6, ntom("3G")
-  elseif iNote == 69 then
-    schedule "PadsR", 0, 3, 0.6, ntom("3A")
-  elseif iNote == 70 then
-    schedule "PadsR", 0, 3, 0.6, ntom("4C")
-  elseif iNote == 71 then
-    schedule "PadsR", 0, 3, 0.6, ntom("4D")
+LaunchpadMap 36, $INSTR, "PadsR", 3, 0.6, ntom("2A"), 0
+LaunchpadMap 37, $INSTR, "PadsR", 3, 0.6, ntom("3C"), 0
+LaunchpadMap 38, $INSTR, "PadsR", 0, 3, 0.6, ntom("3D"), 0
+LaunchpadMap 39, $INSTR, "PadsR", 0, 3, 0.6, ntom("3E"), 0
+LaunchpadMap 68, $INSTR, "PadsR", 0, 3, 0.6, ntom("3G"), 0
+LaunchpadMap 69, $INSTR, "PadsR", 0, 3, 0.6, ntom("3A"), 0
+LaunchpadMap 70, $INSTR, "PadsR", 0, 3, 0.6, ntom("4C"), 0
+LaunchpadMap 71, $INSTR, "PadsR", 0, 3, 0.6, ntom("4D"), 0
 
+massign 0, "MidiMap"
 instr MidiMap ;; will replace instr 1
   iNote notnum
   iVelo veloc
@@ -120,9 +113,7 @@ instr MidiMap ;; will replace instr 1
   endif
 endin
 
-;; MIDI dispatcher
-giColor = 45
-massign 0, 1
+;; old MIDI dispatcher
 instr 1
   iNote notnum
   iVelo veloc
@@ -172,11 +163,7 @@ instr 1
 endin
 
 ;; light up Launchpad keys
-instr 2
-#include "colors.orc"
-endin
-
-instr RefreshColors ;; will replace instr 2
+instr RefreshColors
   for iColor, iIndex in getcol(giMidiMap, 0) do
     noteon 1, iIndex, iColor
   od
