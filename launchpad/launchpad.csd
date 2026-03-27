@@ -26,6 +26,10 @@ opcode def, i, ii  ;; set a value or use the default value in case of 0
   xout iVal
 endop
 
+opcode ignore, 0, i
+  ignore xin
+endop
+
 ;; load samples
 giKick2 ftgen 0,0,0,1,"s/kick2.wav",0,0,0
 giKick ftgen 0,0,0,1,"s/kick1.wav",0,0,0
@@ -68,33 +72,40 @@ opcode LaunchpadMap, 0, iiSiiii
   giMidiMap setrow fillarray(iColor, nstrnum(SInstr), iDur, iGain, iFreq, iSample), iNote
 endop
 
+instr WrapBD
+  iGain = p4
+  iFreq = p5
+  ignore p6
+  schedule "BD", 0, 1, iFreq, iGain
+endin
+
 ;; system
 LaunchpadMap 99, $COLOR_SYS, "RefreshColors", 0.1, 1, 1, 0
 ;; drums
-LaunchpadMap 43, $PAD_L, "Bd", 1, .5, 110, 0.1
-LaunchpadMap 72, $PAD_R, "Bd", 1, .5, 110, 0.1
-LaunchpadMap 42, $PAD_L, "Sample", 1, 0, mtof(60), giKick2
-LaunchpadMap 73, $PAD_R, "Sample", 1, 0, mtof(60), giKick2
-LaunchpadMap 41, $PAD_L, "Sample", 1, 0, mtof(36), giKick2
-LaunchpadMap 74, $PAD_R, "Sample", 1, 0, mtof(36), giKick2
-LaunchpadMap 40, $PAD_L, "Sample", 1, 0, mtof(72), giKick2
-LaunchpadMap 75, $PAD_R, "Sample", 1, 0, mtof(72), giKick2
+LaunchpadMap 43, $PAD_L, "Bd", 1, 0.5, 110, 0.1
+LaunchpadMap 72, $PAD_R, "Bd", 1, 0.5, 110, 0.1
+LaunchpadMap 42, $PAD_L, "WrapBD", 1, 0.5, mtof:i(60), 0
+LaunchpadMap 73, $PAD_R, "WrapBD", 1, 0.5, mtof:i(60), 0
+LaunchpadMap 41, $PAD_L, "Sample", 1, 0, mtof:i(60), giKick2
+LaunchpadMap 74, $PAD_R, "Sample", 1, 0, mtof:i(60), giKick2
+LaunchpadMap 40, $PAD_L, "Sample", 1, 0, mtof:i(72), giKick2
+LaunchpadMap 75, $PAD_R, "Sample", 1, 0, mtof:i(72), giKick2
 ;; hats
 LaunchpadMap 47, $PAD_L, "Hh", 1, 1, 5000, 0.1
 LaunchpadMap 76, $PAD_R, "Hh", 1, 1, 5000, 0.1
-LaunchpadMap 46, $PAD_L, "Sample", 1, 0, mtof(60), giHh1
-LaunchpadMap 77, $PAD_R, "Sample", 1, 0, mtof(60), giHh1
-LaunchpadMap 45, $PAD_L, "Sample", 1, 0, mtof(36), giHh2
-LaunchpadMap 78, $PAD_R, "Sample", 1, 0, mtof(36), giHh2
+LaunchpadMap 46, $PAD_L, "Sample", 1, 0, mtof:i(60), giHh1
+LaunchpadMap 77, $PAD_R, "Sample", 1, 0, mtof:i(60), giHh1
+LaunchpadMap 45, $PAD_L, "Sample", 1, 0, mtof:i(36), giHh2
+LaunchpadMap 78, $PAD_R, "Sample", 1, 0, mtof:i(36), giHh2
 ;; cymbals
-LaunchpadMap 51, $PAD_L, "Sample", 1, 0, mtof(60), giSnare1
-LaunchpadMap 80, $PAD_R, "Sample", 1, 0, mtof(60), giSnare1
-LaunchpadMap 50, $PAD_L, "Sample", 1, 0, mtof(60), giSnare2
-LaunchpadMap 81, $PAD_R, "Sample", 1, 0, mtof(60), giSnare2
-LaunchpadMap 49, $PAD_L, "Sample", 1, 0, mtof(60), giHhRim
-LaunchpadMap 82, $PAD_R, "Sample", 1, 0, mtof(60), giHhRim
-LaunchpadMap 48, $PAD_L, "Sample", 1, 0, mtof(60), giHhLong
-LaunchpadMap 83, $PAD_R, "Sample", 1, 0, mtof(60), giHhLong
+LaunchpadMap 51, $PAD_L, "Sample", 1, 0, mtof:i(60), giSnare1
+LaunchpadMap 80, $PAD_R, "Sample", 1, 0, mtof:i(60), giSnare1
+LaunchpadMap 50, $PAD_L, "Sample", 1, 0, mtof:i(60), giSnare2
+LaunchpadMap 81, $PAD_R, "Sample", 1, 0, mtof:i(60), giSnare2
+LaunchpadMap 49, $PAD_L, "Sample", 1, 0, mtof:i(60), giHhRim
+LaunchpadMap 82, $PAD_R, "Sample", 1, 0, mtof:i(60), giHhRim
+LaunchpadMap 48, $PAD_L, "Sample", 1, 0, mtof:i(60), giHhLong
+LaunchpadMap 83, $PAD_R, "Sample", 1, 0, mtof:i(60), giHhLong
 ;; pads
 LaunchpadMap 36, $INSTR, "PadsR", 3, 0.6, ntom("2A"), 0
 LaunchpadMap 37, $INSTR, "PadsR", 3, 0.6, ntom("3C"), 0
@@ -111,72 +122,24 @@ instr MidiHandler
   iVelo veloc
   if giMidiMap[iNote][$MIDI_INSTR] > 0 then
     iGain def giMidiMap[iNote][$MIDI_GAIN], iVelo/127
-    iFreq def giMidiMap[iNote][$MIDI_FREQ], mtof(iNote)
+    iFreq def giMidiMap[iNote][$MIDI_FREQ], mtof:i(iNote)
     schedule giMidiMap[iNote][$MIDI_INSTR], 0, giMidiMap[iNote][$MIDI_DUR], iGain, iFreq, giMidiMap[iNote][$MIDI_SAMPLE]
-  endif
-endin
-
-;; old MIDI dispatcher
-instr 1
-  iNote notnum
-  iVelo veloc
-  ; bass drums
-  if iNote == 43 || iNote == 72 then
-    schedule "Bd",0,1,.05125,1,110
-  elseif iNote == 42 || iNote == 73 then
-    schedule 3,0,1,giKick2,(iVelo/127),mtof(60)
-  elseif iNote == 41 || iNote == 74 then
-    schedule 3,0,1,giKick2,(iVelo/127),mtof(60-24)
-  elseif iNote == 40 || iNote == 75 then
-    schedule 3,0,1,giKick2,(iVelo/127),mtof(60+12)
-  ; high hats
-  elseif iNote == 47 || iNote == 76 then
-    schedule "Hh", 0, 1, .05, 1, 5000
-  elseif iNote == 46 || iNote == 77 then
-    schedule 3,0,1,giHh1,(iVelo/127),mtof(60)
-  elseif iNote == 45 || iNote == 78 then
-    schedule 3,0,1,giHh2,(iVelo/127),mtof(60-24)
-  ; cymbals
-  elseif iNote == 51 || iNote == 80 then
-    schedule 3,0,1,giSnare1,(iVelo/127),mtof(60)
-  elseif iNote == 50 || iNote == 81 then
-    schedule 3,0,1,giSnare2,(iVelo/127),mtof(60)
-  elseif iNote == 49 || iNote == 82 then
-    schedule 3,0,1,giHhRim,(iVelo/127),mtof(60)
-  elseif iNote == 48 || iNote == 83 then
-    schedule 3,0,1,giHhLong,(iVelo/127),mtof(60)
-  ; pads
-  elseif iNote == 36 then
-    schedule "PadsR", 0, 3, 0.6, ntom("2A")
-  elseif iNote == 37 then
-    schedule "PadsR", 0, 3, 0.6, ntom("3C")
-  elseif iNote == 38 then
-    schedule "PadsR", 0, 3, 0.6, ntom("3D")
-  elseif iNote == 39 then
-    schedule "PadsR", 0, 3, 0.6, ntom("3E")
-  elseif iNote == 68 then
-    schedule "PadsR", 0, 3, 0.6, ntom("3G")
-  elseif iNote == 69 then
-    schedule "PadsR", 0, 3, 0.6, ntom("3A")
-  elseif iNote == 70 then
-    schedule "PadsR", 0, 3, 0.6, ntom("4C")
-  elseif iNote == 71 then
-    schedule "PadsR", 0, 3, 0.6, ntom("4D")
   endif
 endin
 
 ;; light up Launchpad keys
 instr RefreshColors
   for iColor, iIndex in getcol(giMidiMap, 0) do
-    noteon 1, iIndex+36, iColor
+    noteon 1, iIndex, iColor
   od
+  turnoff
 endin
 
 ;; play a sample
 instr Sample
-  iTable = p4
-  iGain = p5
-  iFreq = p6
+  iGain = p4
+  iFreq = p5
+  iTable = p6
   xtratim ftlen(iTable) * 261.626/iFreq / sr
   aSig,aSig2 loscil3 iGain, iFreq, iTable, 261.626, 0
   outall aSig
@@ -209,26 +172,28 @@ instr Hh
   outall aSig
 endin
 
+;giDistortFn ftgen 0, 0, 257, 9, .5, 1, 270
 instr Pads
   iDur = p3
   iGain def p4, 1
   iNote def p5, 60
   ;
-  aSig poscil 1/2, mtof(iNote)
-  aSig += poscil(1/4, mtof(iNote + 7)-1)
-  aSig += poscil(1/7, mtof(iNote + 12)+1)
-  aSig += poscil(1/20, mtof(iNote + 31))
+  aSig vco2 iGain, mtof(iNote)
+  ;aSig wrap aSig, -0.1, 0.7
+  aSig mvchpf aSig, mtof:i(iNote)*3, 0.35
   aSig *= linseg(0, 0.1, iGain, iDur-1, iGain, 0.3, 0)
   ;
   aSigL, aSigR freeverb aSig, aSig, 0.75, 0.3
   kEnv madsr 0.05, 0.1, 0.8, 0.2
-  out aSigL*kEnv, aSigR*kEnv
+  out aSig*kEnv, aSig*kEnv
+  out aSig, aSig
 endin
 
 instr PadsR
   iDur = p3
   iGain def p4, 1/2
   iNote def p5, 60
+  ignore p6
   turnoff2 "Pads", 0, 1
   schedule "Pads", 0.001, iDur, iGain, iNote
   turnoff
@@ -236,6 +201,6 @@ endin
 
 </CsInstruments>
 <CsScore>
-i2 0 1
+i "RefreshColors" 0 1
 </CsScore>
 </CsoundSynthesizer>
