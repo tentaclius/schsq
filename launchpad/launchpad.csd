@@ -66,7 +66,7 @@ giSnare2 ftgen 0,0,0,1,"s/snare2.wav",0,0,0
 #define MIDI_FREQ #4#
 #define MIDI_SAMPLE #5#
 
-giMidiMap[][] init 100, 6  ;; color, instr, dur, gain, freq, sample/parameter
+giMidiMap[][] init 100, 6 
 opcode LaunchpadMap, 0, iiSiiii
   iNote, iColor, SInstr, iDur, iGain, iFreq, iSample xin
   giMidiMap setrow fillarray(iColor, nstrnum(SInstr), iDur, iGain, iFreq, iSample), iNote
@@ -88,8 +88,8 @@ LaunchpadMap 42, $PAD_L, "WrapBD", 1, 0.5, mtof:i(60), 0
 LaunchpadMap 73, $PAD_R, "WrapBD", 1, 0.5, mtof:i(60), 0
 LaunchpadMap 41, $PAD_L, "Sample", 1, 0, mtof:i(60), giKick2
 LaunchpadMap 74, $PAD_R, "Sample", 1, 0, mtof:i(60), giKick2
-LaunchpadMap 40, $PAD_L, "Sample", 1, 0, mtof:i(72), giKick2
-LaunchpadMap 75, $PAD_R, "Sample", 1, 0, mtof:i(72), giKick2
+LaunchpadMap 40, $PAD_L, "Bdo", 1, 0, 60, 0.23
+LaunchpadMap 75, $PAD_R, "Bdo", 1, 0, 60, 0.23
 ;; hats
 LaunchpadMap 47, $PAD_L, "Hh", 1, 1, 5000, 0.1
 LaunchpadMap 76, $PAD_R, "Hh", 1, 1, 5000, 0.1
@@ -157,6 +157,17 @@ instr Bd
   aBass poscil 0.7 * iGain, 60
   ;
   aSig = (aSig + aBass) * kEnv
+  outall aSig
+endin
+
+instr Bdo
+  iGain def p4, 1
+  iFreq def p5, 60
+  iDur def p6, 0.23
+  ;
+  kEnv linseg 0, 0.008, iGain, iDur, 0
+  aSig poscil kEnv, iFreq
+  ;
   outall aSig
 endin
 
