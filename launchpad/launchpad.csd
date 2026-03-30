@@ -1,11 +1,13 @@
 <CsoundSynthesizer>
 <CsOptions>
   -o dac
-  -+rtaudio=alsa
+  -+rtaudio=jack
   -+rtmidi=alsaseq
   -Ma -Qa
   --port=1234
   -L stdin
+  -b 16
+  -B 272
 </CsOptions>
 <CsInstruments>
 
@@ -65,6 +67,12 @@ giSnare2 ftgen 0,0,0,1,"s/snare2.wav",0,0,0
 #define MIDI_GAIN #3#
 #define MIDI_FREQ #4#
 #define MIDI_SAMPLE #5#
+; looper colors
+#define LOOPER_RECORD #5#
+#define LOOPER_SELECT #40#
+#define LOOPER_OVER #6#
+#define LOOPER_UNDO #19#
+#define LOOPER_MUTE #12#
 
 giMidiMap[][] init 100, 6 
 opcode LaunchpadMap, 0, iiSiiii
@@ -79,8 +87,23 @@ instr WrapBD
   schedule "BD", 0, 1, iFreq, iGain
 endin
 
+;; looper
+LaunchpadMap 64, $LOOPER_RECORD, "NoOp", 1, 1, 1, 0 ; record
+LaunchpadMap 65, $LOOPER_OVER, "NoOp", 1, 1, 1, 0 ; overdub
+LaunchpadMap 66, $LOOPER_UNDO, "NoOp", 1, 1, 1, 0 ; undo
+LaunchpadMap 67, $LOOPER_UNDO, "NoOp", 1, 1, 1, 0 ; redo
+LaunchpadMap 96, $LOOPER_MUTE, "NoOp", 1, 1, 1, 0 ; mute
+LaunchpadMap 97, $LOOPER_MUTE, "NoOp", 1, 1, 1, 0 ; solo
+LaunchpadMap 98, $LOOPER_MUTE, "NoOp", 1, 1, 1, 0 ; once
+LaunchpadMap 60, $LOOPER_SELECT, "NoOp", 1, 1, 1, 0 ; select track 1
+LaunchpadMap 61, $LOOPER_SELECT, "NoOp", 1, 1, 1, 0 ; select track 2
+LaunchpadMap 62, $LOOPER_SELECT, "NoOp", 1, 1, 1, 0 ; select track 3
+LaunchpadMap 63, $LOOPER_SELECT, "NoOp", 1, 1, 1, 0 ; select track 4
+LaunchpadMap 92, $LOOPER_SELECT, "NoOp", 1, 1, 1, 0 ; select track 5
+LaunchpadMap 93, $LOOPER_SELECT, "NoOp", 1, 1, 1, 0 ; select track 6
+LaunchpadMap 95, $LOOPER_MUTE, "NoOp", 1, 1, 1, 0 ; select all tracks
 ;; system
-LaunchpadMap 99, $COLOR_SYS, "RefreshColors", 0.1, 1, 1, 0
+LaunchpadMap 71, $COLOR_SYS, "RefreshColors", 0.1, 1, 1, 0
 ;; drums
 LaunchpadMap 43, $PAD_L, "Bd", 1, 0.5, 110, 0.1
 LaunchpadMap 72, $PAD_R, "Bd", 1, 0.5, 110, 0.1
@@ -114,7 +137,6 @@ LaunchpadMap 39, $INSTR, "PadsR", 3, 0.6, ntom("3E"), 0
 LaunchpadMap 68, $INSTR, "PadsR", 3, 0.6, ntom("3G"), 0
 LaunchpadMap 69, $INSTR, "PadsR", 3, 0.6, ntom("3A"), 0
 LaunchpadMap 70, $INSTR, "PadsR", 3, 0.6, ntom("4C"), 0
-LaunchpadMap 71, $INSTR, "PadsR", 3, 0.6, ntom("4D"), 0
 
 massign 0, "MidiHandler"
 instr MidiHandler
@@ -129,6 +151,9 @@ endin
 
 ;; light up Launchpad keys
 instr RefreshColors
+  ignore p4
+  ignore p5
+  ignore p6
   for iColor, iIndex in getcol(giMidiMap, 0) do
     noteon 1, iIndex, iColor
   od
@@ -176,7 +201,7 @@ instr Hh
   iFreq def p5, 3000
   iDur def p6, 0.1
   ;
-  kEnv linseg 0, 0.005, iGain, iDur, 0
+  kEnv linseg iGain, iDur, 0
   aSig noise kEnv, 0
   aSig mvchpf aSig, iFreq, 0.9
   ;
@@ -208,6 +233,12 @@ instr PadsR
   turnoff2 "Pads", 0, 1
   schedule "Pads", 0.001, iDur, iGain, iNote
   turnoff
+endin
+
+instr NoOp
+  ignore p4
+  ignore p5
+  ignore p6
 endin
 
 </CsInstruments>
