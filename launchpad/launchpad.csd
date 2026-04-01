@@ -13,8 +13,8 @@
 
 sr = 48000
 ksmps = 4
-0dbfs=1
-nchnls=2
+0dbfs = 1
+nchnls = 3
 
 ;; some decent instruments from livecode's lib by Steven Yi
 #include "livecode.orc"
@@ -77,42 +77,32 @@ giSnare2 ftgen 0,0,0,1,"s/snare2.wav",0,0,0
 giMidiMap[][] init 100, 6 
 opcode LaunchpadMap, 0, iiSiiii
   iNote, iColor, SInstr, iDur, iGain, iFreq, iSample xin
-  giMidiMap setrow fillarray(iColor, nstrnum(SInstr), iDur, iGain, iFreq, iSample), iNote
+  iInstrNum = SInstr == "" ? 0 : nstrnum(SInstr)
+  giMidiMap setrow fillarray(iColor, iInstrNum, iDur, iGain, iFreq, iSample), iNote
 endop
 
-instr WrapBD
-  iGain = p4
-  iFreq = p5
-  ignore p6
-  schedule "BD", 0, 1, iFreq, iGain
-endin
-
 ;; looper
-LaunchpadMap 64, $LOOPER_RECORD, "NoOp", 1, 1, 1, 0 ; record
-LaunchpadMap 65, $LOOPER_OVER, "NoOp", 1, 1, 1, 0 ; overdub
-LaunchpadMap 66, $LOOPER_UNDO, "NoOp", 1, 1, 1, 0 ; undo
-LaunchpadMap 67, $LOOPER_UNDO, "NoOp", 1, 1, 1, 0 ; redo
-LaunchpadMap 96, $LOOPER_MUTE, "NoOp", 1, 1, 1, 0 ; mute
-LaunchpadMap 97, $LOOPER_MUTE, "NoOp", 1, 1, 1, 0 ; solo
-LaunchpadMap 98, $LOOPER_MUTE, "NoOp", 1, 1, 1, 0 ; once
-LaunchpadMap 60, $LOOPER_SELECT, "NoOp", 1, 1, 1, 0 ; select track 1
-LaunchpadMap 61, $LOOPER_SELECT, "NoOp", 1, 1, 1, 0 ; select track 2
-LaunchpadMap 62, $LOOPER_SELECT, "NoOp", 1, 1, 1, 0 ; select track 3
-LaunchpadMap 63, $LOOPER_SELECT, "NoOp", 1, 1, 1, 0 ; select track 4
-LaunchpadMap 92, $LOOPER_SELECT, "NoOp", 1, 1, 1, 0 ; select track 5
-LaunchpadMap 93, $LOOPER_SELECT, "NoOp", 1, 1, 1, 0 ; select track 6
-LaunchpadMap 95, $LOOPER_MUTE, "NoOp", 1, 1, 1, 0 ; select all tracks
+LaunchpadMap 64, $LOOPER_RECORD, "", 1, 1, 1, 0 ; record
+LaunchpadMap 65, $LOOPER_OVER, "", 1, 1, 1, 0 ; overdub
+LaunchpadMap 66, $LOOPER_UNDO, "", 1, 1, 1, 0 ; undo
+LaunchpadMap 67, $LOOPER_UNDO, "", 1, 1, 1, 0 ; redo
+LaunchpadMap 96, $LOOPER_MUTE, "", 1, 1, 1, 0 ; mute
+LaunchpadMap 97, $LOOPER_MUTE, "", 1, 1, 1, 0 ; solo
+LaunchpadMap 98, $LOOPER_MUTE, "", 1, 1, 1, 0 ; once
+LaunchpadMap 60, $LOOPER_SELECT, "", 1, 1, 1, 0 ; select track 1
+LaunchpadMap 61, $LOOPER_SELECT, "", 1, 1, 1, 0 ; select track 2
+LaunchpadMap 62, $LOOPER_SELECT, "", 1, 1, 1, 0 ; select track 3
+LaunchpadMap 63, $LOOPER_SELECT, "", 1, 1, 1, 0 ; select track 4
+LaunchpadMap 92, $LOOPER_SELECT, "", 1, 1, 1, 0 ; select track 5
+LaunchpadMap 93, $LOOPER_SELECT, "", 1, 1, 1, 0 ; select track 6
+LaunchpadMap 95, $LOOPER_MUTE, "", 1, 1, 1, 0 ; select all tracks
 ;; system
 LaunchpadMap 71, $COLOR_SYS, "RefreshColors", 0.1, 1, 1, 0
 ;; drums
 LaunchpadMap 43, $PAD_L, "Bd", 1, 0.5, 110, 0.1
 LaunchpadMap 72, $PAD_R, "Bd", 1, 0.5, 110, 0.1
-LaunchpadMap 42, $PAD_L, "WrapBD", 1, 0.5, mtof:i(60), 0
-LaunchpadMap 73, $PAD_R, "WrapBD", 1, 0.5, mtof:i(60), 0
-LaunchpadMap 41, $PAD_L, "Sample", 1, 0, mtof:i(60), giKick2
-LaunchpadMap 74, $PAD_R, "Sample", 1, 0, mtof:i(60), giKick2
-LaunchpadMap 40, $PAD_L, "Bdo", 1, 0, 60, 0.23
-LaunchpadMap 75, $PAD_R, "Bdo", 1, 0, 60, 0.23
+LaunchpadMap 42, $PAD_L, "Sample", 1, 0, mtof:i(60), giKick2
+LaunchpadMap 73, $PAD_R, "Sample", 1, 0, mtof:i(60), giKick2
 ;; hats
 LaunchpadMap 47, $PAD_L, "Hh", 1, 1, 5000, 0.1
 LaunchpadMap 76, $PAD_R, "Hh", 1, 1, 5000, 0.1
@@ -121,14 +111,14 @@ LaunchpadMap 77, $PAD_R, "Sample", 1, 0, mtof:i(60), giHh1
 LaunchpadMap 45, $PAD_L, "Sample", 1, 0, mtof:i(36), giHh2
 LaunchpadMap 78, $PAD_R, "Sample", 1, 0, mtof:i(36), giHh2
 ;; cymbals
-LaunchpadMap 51, $PAD_L, "Sample", 1, 0, mtof:i(60), giSnare1
-LaunchpadMap 80, $PAD_R, "Sample", 1, 0, mtof:i(60), giSnare1
-LaunchpadMap 50, $PAD_L, "Sample", 1, 0, mtof:i(60), giSnare2
-LaunchpadMap 81, $PAD_R, "Sample", 1, 0, mtof:i(60), giSnare2
-LaunchpadMap 49, $PAD_L, "Sample", 1, 0, mtof:i(60), giHhRim
-LaunchpadMap 82, $PAD_R, "Sample", 1, 0, mtof:i(60), giHhRim
-LaunchpadMap 48, $PAD_L, "Sample", 1, 0, mtof:i(60), giHhLong
-LaunchpadMap 83, $PAD_R, "Sample", 1, 0, mtof:i(60), giHhLong
+LaunchpadMap 51, $PAD_L, "Sample", 1, -1, mtof:i(60), giSnare1
+LaunchpadMap 80, $PAD_R, "Sample", 1, -1, mtof:i(60), giSnare1
+LaunchpadMap 50, $PAD_L, "Sample", 1, -8, mtof:i(60), giSnare2
+LaunchpadMap 81, $PAD_R, "Sample", 1, -8, mtof:i(60), giSnare2
+LaunchpadMap 49, $PAD_L, "Sample", 1, -8, mtof:i(60), giHhRim
+LaunchpadMap 82, $PAD_R, "Sample", 1, -8, mtof:i(60), giHhRim
+LaunchpadMap 48, $PAD_L, "Sample", 1, -10, mtof:i(60), giHhLong
+LaunchpadMap 83, $PAD_R, "Sample", 1, -10, mtof:i(60), giHhLong
 ;; pads
 LaunchpadMap 36, $INSTR, "PadsR", 3, 0.6, ntom("2A"), 0
 LaunchpadMap 37, $INSTR, "PadsR", 3, 0.6, ntom("3C"), 0
@@ -138,14 +128,20 @@ LaunchpadMap 68, $INSTR, "PadsR", 3, 0.6, ntom("3G"), 0
 LaunchpadMap 69, $INSTR, "PadsR", 3, 0.6, ntom("3A"), 0
 LaunchpadMap 70, $INSTR, "PadsR", 3, 0.6, ntom("4C"), 0
 
-massign 0, "MidiHandler"
+massign 1, "MidiHandler"
+massign 2, "PadsM"
+
 instr MidiHandler
   iNote notnum
   iVelo veloc
+  ;
   if giMidiMap[iNote][$MIDI_INSTR] > 0 then
-    iGain def giMidiMap[iNote][$MIDI_GAIN], iVelo/127
+    iGain = giMidiMap[iNote][$MIDI_GAIN]
+    if iGain <= 0 then
+      iGain = sqrt(iVelo/127) * ampdb(iGain)
+    endif
     iFreq def giMidiMap[iNote][$MIDI_FREQ], mtof:i(iNote)
-    schedule giMidiMap[iNote][$MIDI_INSTR], 0, giMidiMap[iNote][$MIDI_DUR], iGain, iFreq, giMidiMap[iNote][$MIDI_SAMPLE]
+    event_i "i", giMidiMap[iNote][$MIDI_INSTR], 0, giMidiMap[iNote][$MIDI_DUR], iGain, iFreq, giMidiMap[iNote][$MIDI_SAMPLE]
   endif
 endin
 
@@ -165,10 +161,47 @@ instr Sample
   iGain = p4
   iFreq = p5
   iTable = p6
+  ;
   xtratim ftlen(iTable) * 261.626/iFreq / sr
   aSig,aSig2 loscil3 iGain, iFreq, iTable, 261.626, 0
-  outall aSig
+  ;
+  out aSig, aSig
 endin
+
+instr MetronomeSnd
+  iFq def p4, 5000
+  ;
+  kEnv linseg 1, 0.051, 0
+  aSig noise kEnv/2, 0.5
+  aSig mvchpf aSig, iFq, 0.9
+  aSig *= kEnv
+  ;
+  aSin poscil kEnv/2, iFq
+  aSig += aSin
+  ;
+  outch 3, aSig
+endin
+
+instr MetronomeStart
+  schedule "MetronomeSnd", 0, 1, 1000
+  schedule "MetronomeSnd", 1/2, 1, 500
+  schedule "MetronomeSnd", 2/2, 1, 500
+  schedule "MetronomeSnd", 3/2, 1, 500
+  schedule "Metronome", 2, 1
+endin
+
+instr MetronomeStop
+  turnoff3 "Metronome"
+  turnoff3 "MetronomeSnd"
+endin
+
+/*
+i "MetronomeStop" 1 1
+i "MetronomeStart" 0 1 
+*/
+
+;; Synthesized Instruments
+;; =================================================================================
 
 instr Bd
   iGain def p4, 1
@@ -182,18 +215,7 @@ instr Bd
   aBass poscil 0.7 * iGain, 60
   ;
   aSig = (aSig + aBass) * kEnv
-  outall aSig
-endin
-
-instr Bdo
-  iGain def p4, 1
-  iFreq def p5, 60
-  iDur def p6, 0.23
-  ;
-  kEnv linseg 0, 0.008, iGain, iDur, 0
-  aSig poscil kEnv, iFreq
-  ;
-  outall aSig
+  out aSig, aSig
 endin
 
 instr Hh
@@ -205,23 +227,19 @@ instr Hh
   aSig noise kEnv, 0
   aSig mvchpf aSig, iFreq, 0.9
   ;
-  outall aSig
+  out aSig, aSig
 endin
 
 ;giDistortFn ftgen 0, 0, 257, 9, .5, 1, 270
 instr Pads
-  iDur = p3
-  iGain def p4, 1
-  iNote def p5, 60
+  iGain = p4
+  iFreq mtof p5
   ;
-  aSig vco2 iGain, mtof(iNote)
-  ;aSig wrap aSig, -0.1, 0.7
-  aSig mvchpf aSig, mtof:i(iNote)*3, 0.35
-  aSig *= linseg(0, 0.1, iGain, iDur-1, iGain, 0.3, 0)
+  kEnv madsr 0.02, 0.07, 0.7, 0.3
+  kEnv *= iGain
+  aSig vco2 kEnv, iFreq
+  aSig vclpf aSig, kEnv*iFreq*5+100, 0.35
   ;
-  aSigL, aSigR freeverb aSig, aSig, 0.75, 0.3
-  kEnv madsr 0.05, 0.1, 0.8, 0.2
-  out aSig*kEnv, aSig*kEnv
   out aSig, aSig
 endin
 
@@ -231,14 +249,22 @@ instr PadsR
   iNote def p5, 60
   ignore p6
   turnoff2 "Pads", 0, 1
-  schedule "Pads", 0.001, iDur, iGain, iNote
+  event_i "i", "Pads", 0.0001, iDur, iGain, iNote
   turnoff
 endin
 
-instr NoOp
-  ignore p4
-  ignore p5
-  ignore p6
+instr PadsM
+  iGain = veloc()/127
+  iFreq = mtof(notnum())
+  ;
+  kEnv madsr 0.02, 0.1, 0.7, 0.3
+  kEnv *= iGain
+  aSig vco2 kEnv, iFreq
+  kFilterEnv = kEnv * iFreq * 5 + 200
+  aSig vclpf aSig, kFilterEnv, 0.55
+  ;
+  out aSig, aSig
+  xtratim 0.5
 endin
 
 </CsInstruments>
