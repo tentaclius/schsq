@@ -70,6 +70,7 @@ t0 [(* 60 2)]
 i"Ding" 0 1 [(sq)]
 i. + . [(sq)]
 i. + . [(sq)]
+i. + . [(sq)]
 
 </CsScore>
 </CsoundSynthesizer>
