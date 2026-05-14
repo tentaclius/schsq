@@ -72,5 +72,10 @@ i. + . [(sq)]
 i. + . [(sq)]
 i. + . [(sq)]
 
+B2
+[(for-each
+  (lambda(s) (writeln "i\"Ding\" " (exact->inexact (/ s 20)) " 2 " s " 0.3"))
+  (chord C-4 *major* #:c7))]
+
 </CsScore>
 </CsoundSynthesizer>

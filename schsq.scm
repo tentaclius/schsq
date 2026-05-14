@@ -446,7 +446,7 @@
 (define *major* #(0 2 4 5 7 9 11))
 (define *minor* #(0 2 3 5 7 8 10))
 
-(define* (chord mod #:key (shift 0) (root 0) (scale *chromatic*) steps)
+(define* (chord root scale mod #:key (shift 0) steps)
   (let ((ch (map
               (λ(n) (+ root (sc scale (+ n shift))))
               (case mod
