@@ -2,14 +2,6 @@
 (use-modules (schsq))
 (read-set! keywords 'prefix)
 
-;(tracker :play
-;  #(0    0     0     1     2)
-;  A-3    _     _     A-1   _
-;  B-3    _     _     _     A-1)
-
-;;; Launchpad lightshow
-;;; {{{
-
 (midi-init "CL")
 
 (define *pads*

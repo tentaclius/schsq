@@ -4,24 +4,6 @@
              (rnrs io ports)
              (schsq))
 
-(define (read-bracketed port)
-  ;; Read until matching ']'
-  (let loop ((chars '()))
-    (let ((c (read-char port)))
-      (cond
-        ((eof-object? c)
-         (error "Unterminated [ ... ] block"))
-
-        ((char=? c #\])
-         (list->string (reverse chars)))
-
-        (else
-          (loop (cons c chars)))))))
-
-(define (eval-to-string code)
-  (eval (read (open-input-string code))
-        (current-module)))
-
 (define (process port)
   (let loop ()
     (let ((c (read-char port)))
@@ -29,9 +11,8 @@
         ((eof-object? c)
          #t)
 
-        ((char=? c #\[)
-         (let ((val (eval-to-string (read-bracketed port))))
-           (unless (unspecified? val) (display val)))
+        ((char=? c #\%)
+         (display (eval (read port) (current-module)))
          (loop))
 
         (else

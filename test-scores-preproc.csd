@@ -17,7 +17,6 @@ nchnls = 2
 ;; Instruments
 instr Ding
   iFreq mtof p4
-  print p4
   print iFreq
   iGain def p5, 0.5
   iDecay def p6, 0.7
@@ -60,22 +59,7 @@ endin
 </CsInstruments>
 <CsScore bin="guile guile-score-preproc.scm">
 
-[(define sq (let* ((sequence (list 0 2 5 7)) (ptr sequence))
-  (lambda ()
-    (+ C-4 (cond
-      ((null? ptr) (set! ptr (cdr sequence)) (car sequence))
-      (else (let ((x (car ptr))) (set! ptr (cdr ptr)) x)))))))]
-
-t0 [(* 60 2)]
-i"Ding" 0 1 [(sq)]
-i. + . [(sq)]
-i. + . [(sq)]
-i. + . [(sq)]
-
-B2
-[(for-each
-  (lambda(s) (writeln "i\"Ding\" " (exact->inexact (/ s 20)) " 2 " s " 0.3"))
-  (chord C-4 *major* #:c7))]
+i "Ding" 0 1 %(+ 60 2)
 
 </CsScore>
 </CsoundSynthesizer>
